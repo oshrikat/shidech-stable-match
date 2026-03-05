@@ -1,56 +1,75 @@
 package oshrik.shidech_stable_match.datamodels;
 
+import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-
 /**
- * @author Oshri Kataribas
+ * מחלקה המייצגת משתמש במערכת.
+ * ממופה לאוסף "Users" במסד הנתונים MongoDB.
+ * * @author Oshri Kataribas
+ * 
  * @date 2026-02-24
-*/
-
-
-/**
- * הגדרת משתמש - בסיסי בינתיים
  */
-
 @Document(collection = "Users")
-public class User 
-{
-    private String userName;
-    private String passWord;
-    
-    // .....
+public class User {
 
+    @Id
+    private String id;
 
+    private String username;
+    private String password;
 
-    // פכולות סט וגט
-    
-    public User(User user) 
-    {
-        this.userName = user.getUserName();
-        this.passWord = user.getPassWord();
+    /**
+     * בנאי ריק (Default Constructor)
+     * נדרש על ידי Spring Data MongoDB כדי לייצר אובייקטים בעת שליפה ממסד הנתונים.
+     */
+    public User() {
     }
 
-    public User(String us, String pw) 
-    {
-        
-        this.userName = us;
-        this.passWord = pw;
+    /**
+     * בנאי אתחול עם שם משתמש וסיסמה.
+     * 
+     * @param userName שם המשתמש
+     * @param passWord סיסמת המשתמש
+     */
+    public User(String userName, String passWord) {
+        this.username = userName;
+        this.password = passWord;
     }
 
-    public String getUserName() {
-        return userName;
+    /**
+     * Copy Constructor - בנאי העתקה
+     * 
+     * @param user אובייקט משתמש להעתקה
+     */
+    public User(User user) {
+        this.username = user.getUsername();
+        this.password = user.getPassword();
     }
-  
-    public void setUserName(String userName) {
-        this.userName = userName;
-    }
-    public String getPassWord() {
-        return passWord;
-    }
-    public void setPassWord(String passWord) {
-        this.passWord = passWord;
-    }
-    
 
+    // --- Getters and Setters ---
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String userName) {
+        this.username = userName;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String passWord) {
+        this.password = passWord;
+    }
 }
