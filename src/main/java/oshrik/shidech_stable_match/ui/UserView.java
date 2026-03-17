@@ -17,6 +17,8 @@ import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.Route;
 
 import oshrik.shidech_stable_match.datamodels.User;
+import oshrik.shidech_stable_match.services.DataGenerationService;
+import oshrik.shidech_stable_match.services.MatchmakingService;
 import oshrik.shidech_stable_match.services.UserService;
 import oshrik.shidech_stable_match.utilities.SessionHelper;
 
@@ -33,6 +35,8 @@ public class UserView extends VerticalLayout implements BeforeEnterObserver
     private Button btnInsert;
 
     public UserView(UserService userService) {
+
+        // אתחול התלויות
         this.userService = userService;
 
         // --- 1. כותרות ופרטי סשן ---

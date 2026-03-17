@@ -1,4 +1,5 @@
 .vscode/
 src/test/
 target/
+src\main\java\oshrik\shidech_stable_match\datamodels\User2.java
 src/main/frontend/

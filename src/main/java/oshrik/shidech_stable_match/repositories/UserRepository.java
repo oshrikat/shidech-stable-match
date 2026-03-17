@@ -6,6 +6,7 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
 
 import oshrik.shidech_stable_match.datamodels.User;
+import oshrik.shidech_stable_match.datamodels.User.Gender;
 
 /**
  * ממשק לניהול פעולות CRUD מול אוסף המשתמשים ב-MongoDB.
@@ -50,5 +51,11 @@ public interface UserRepository extends MongoRepository<User, String> {
 
     // האם השתמש משתמש כבר קיים ?
     public boolean existsByUsername(String userName);
+
+    // פונקציה לשליפת כל המשתמשים לפי מגדר
+    public List<User> findByGender(User.Gender gender);
+
+    // java.util.List<oshrik.shidech_stable_match.datamodels.User>
+    // findByGender(oshrik.shidech_stable_match.datamodels.User.Gender gender);
 
 }
