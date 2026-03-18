@@ -195,14 +195,13 @@ public class User {
         return currentPartner == null;
     }
 
-    /** שולף את ההצעה הבאה בתור, ומקדם את האינדקס */
-
+    /** שולף את ההצעה הבאה בתור מתוך רשימת ההעדפות, ומקדם את האינדקס */
     public ScorePair getNextProposalCandidate() {
         int next = proposalIndex++;
-        if (next < this.preferencesScores.size())
+        if (this.preferencesScores != null && next < this.preferencesScores.size()) {
             return this.preferencesScores.get(next);
-        else
-            return null;
+        }
+        return null;
     }
 
     /** יוצר אירוסין עם משתמש אחר */
@@ -226,15 +225,17 @@ public class User {
         return indexPotential < indexCurrent;
     }
 
-    /** מוצא את מיקום המועמד ברשימת ההעדפות שלי */
+    /** מוצא את מיקום המועמד ברשימת ההעדפות שלי (עזר עבור פונקציית isBetter) */
     private int findIndexAtMePrefList(User candToCheck) {
+        if (this.preferencesScores == null)
+            return -1;
 
         for (int i = 0; i < this.preferencesScores.size(); i++) {
-            if (this.preferencesScores.get(i).getCandidate().equals(candToCheck)) {
+            // אנחנו משווים לפי ה-ID של המשתמש כדי להיות בטוחים ב-100% שזה אותו אדם
+            if (this.preferencesScores.get(i).getCandidate().getId().equals(candToCheck.getId())) {
                 return i;
             }
         }
-
         return -1;
     }
 

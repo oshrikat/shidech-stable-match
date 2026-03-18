@@ -3,6 +3,8 @@ package oshrik.shidech_stable_match.ui;
 import java.util.ArrayList;
 
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.H4;
@@ -22,7 +24,7 @@ import oshrik.shidech_stable_match.services.MatchmakingService;
 import oshrik.shidech_stable_match.services.UserService;
 import oshrik.shidech_stable_match.utilities.SessionHelper;
 
-@Route("/")
+@Route(value = "/", layout = MainLayout.class)
 public class UserView extends VerticalLayout implements BeforeEnterObserver 
 {
 
@@ -32,7 +34,7 @@ public class UserView extends VerticalLayout implements BeforeEnterObserver
     // רכיבי הוספת משתמש
     private TextField userNameTextField;
     private TextField userPassWordField;
-    private Button btnInsert;
+    private Button btnInsert, btnClearData;
 
     public UserView(UserService userService) {
 
@@ -88,11 +90,36 @@ public class UserView extends VerticalLayout implements BeforeEnterObserver
             Notification.show("User " + cu.getUsername() + " was deleted!", 3000, Position.BOTTOM_CENTER);
         });
 
+        // כפתור מחיקת משתמשים - ניקיון
+        // 1. יצירת רכיב הדיאלוג
+        ConfirmDialog dialog = new ConfirmDialog();
+        dialog.setHeader("איפוס נתונים (Fresh Start)");
+        dialog.setText("האם אתה בטוח שברצונך למחוק את כל המשתמשים מהמערכת? פעולה זו אינה ניתנת לביטול.");
+
+        // 2. הגדרת כפתור הביטול
+        dialog.setCancelable(true);
+        dialog.setCancelText("ביטול");
+
+        // 3. הגדרת כפתור האישור (ה-Action האמיתי)
+        dialog.setConfirmText("מחק הכל!");
+        dialog.setConfirmButtonTheme("error primary"); // הופך את הכפתור לאדום (אזהרה)
+
+        dialog.addConfirmListener(event -> {
+            // מחיקה של כל המשתמשים
+            userService.deleteAllUsers();
+            refreshGrid(); // רענון הטבלה במסך
+            Notification.show("המסד נוקה בהצלחה! ✨");
+        });
+
+        // 4. יצירת הכפתור שפותח את הדיאלוג
+        btnClearData = new Button("Fresh Start 🧹", e -> dialog.open());
+        btnClearData.addThemeVariants(ButtonVariant.LUMO_ERROR); // עיצוב אדום לכפתור הראשי
+
         // טעינה ראשונית של הנתונים
         refreshGrid();
 
         // --- 5. הוספת כל הרכיבים למסך לפי הסדר ---
-        add(title, userInfo, logoutBtn, addLayout, searchLayout, usersGrid);
+        add(title, userInfo, logoutBtn, btnClearData, addLayout, searchLayout, usersGrid);
     }
 
     private void insertUserToDB() {
