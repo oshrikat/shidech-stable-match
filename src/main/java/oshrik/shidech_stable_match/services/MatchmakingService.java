@@ -50,4 +50,5 @@ public class MatchmakingService {
     // --- הוספנו Getters כדי שהמסך יוכל למשוך את הרשימות המלאות ---
     public List<User> getCurrentMen() { return currentMen; }
     public List<User> getCurrentWomen() { return currentWomen; }
+
 }

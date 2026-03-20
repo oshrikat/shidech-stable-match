@@ -1,61 +1,103 @@
 package oshrik.shidech_stable_match.ui;
 
 import com.vaadin.flow.component.applayout.AppLayout;
-import com.vaadin.flow.component.html.H1;
-import com.vaadin.flow.component.orderedlayout.FlexComponent;
-import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
-import com.vaadin.flow.component.tabs.Tab;
-import com.vaadin.flow.component.tabs.Tabs;
+import com.vaadin.flow.component.dependency.CssImport;
+import com.vaadin.flow.component.html.*;
+import com.vaadin.flow.component.orderedlayout.*;
+import com.vaadin.flow.router.AfterNavigationEvent;
+import com.vaadin.flow.router.AfterNavigationObserver;
 import com.vaadin.flow.router.RouterLink;
 
-/**
- * ה-Layout הראשי - שימוש ברכיב Tabs המובנה של Vaadin לתפריט עליון מקצועי.
- */
-public class MainLayout extends AppLayout {
+@CssImport("./themes/navbar.css")
+public class MainLayout extends AppLayout implements AfterNavigationObserver {
+
+    // משתנים לשמירת הכפתורים כדי שנוכל לשנות להם צבע
+    private Div usersTab;
+    private Div algoTab;
 
     public MainLayout() {
         createHeader();
     }
 
     private void createHeader() {
-        // 1. הלוגו שלנו
-        H1 logo = new H1("Shidech Matchmaker 💍");
-        logo.getStyle()
-            .set("font-size", "var(--lumo-font-size-l)")
-            .set("margin", "1000 var(--lumo-space-l) 1000 var(--lumo-space-m)");
+        // --- לוגו ---
+        Div brandIcon = new Div();
+        brandIcon.addClassName("brand-icon");
 
-        // 2. יצירת תפריט הלשוניות (Tabs)
-        Tabs menuTabs = new Tabs();
-        
-        // הוספת הלשוניות (משתמשים בפונקציית העזר שיצרנו למטה)
-        menuTabs.add(
-            createTab("אדמין משתמשים", UserView.class),
-            createTab("פיילוט אלגוריתם", MatchAlgoView.class),
-            createTab("צ'אט (בקרוב)", UserView.class) // כרגע מפנה לאותו מקום עד שניצור דף
-        );
+        Span brandName = new Span("Shidech");
+        brandName.addClassName("brand-name");
+        Span brandSub = new Span("Matchmaker");
+        brandSub.addClassName("brand-sub");
 
-        // הגדרה שהתפריט ייקח את הרוחב שנותר וייראה טוב
-        menuTabs.setWidthFull();
+        Div brandText = new Div(brandName, brandSub);
+        Div brand = new Div(brandIcon, brandText);
+        brand.addClassName("brand");
 
-        // 3. חיבור הלוגו והתפריט לשורה אחת (Header)
-        HorizontalLayout header = new HorizontalLayout(logo, menuTabs);
-        header.setDefaultVerticalComponentAlignment(FlexComponent.Alignment.CENTER);
-        header.setWidthFull();
-        
-        // הוספה ל-Navbar העליון של האפליקציה
-        addToNavbar(header);
+        // --- מפריד ---
+        Div divider = new Div();
+        divider.addClassName("nav-divider-v");
+
+        // --- פריטי ניווט ---
+        // כאן אנחנו משתמשים במשתנים שהגדרנו למעלה
+        usersTab = createNavItem("אדמין משתמשים", UserView.class);
+        algoTab = createNavItem("פיילוט אלגוריתם", MatchAlgoView.class);
+        Div chatTab = createNavItemDisabled("צ'אט", "בקרוב");
+
+        Div navItems = new Div(usersTab, algoTab, chatTab);
+        navItems.addClassName("nav-items");
+
+        // --- אווטר משתמש ---
+        Div avatar = new Div(new Span("א"));
+        avatar.addClassName("nav-avatar");
+
+        // --- הרכבה ---
+        HorizontalLayout navbar = new HorizontalLayout(brand, divider, navItems, avatar);
+        navbar.addClassName("main-navbar");
+        navbar.setDefaultVerticalComponentAlignment(FlexComponent.Alignment.CENTER);
+        navbar.setWidthFull();
+
+        addToNavbar(navbar);
     }
 
-    /**
-     * פונקציית עזר (Helper) מקצועית: 
-     * מחברת בין לשונית (Tab) לבין קישור לדף (RouterLink) בצורה תקנית של Vaadin.
-     */
-    private Tab createTab(String viewName, Class<? extends com.vaadin.flow.component.Component> viewClass) {
-        RouterLink link = new RouterLink();
-        link.add(viewName);
-        link.setRoute(viewClass);
-        link.setTabIndex(-1); // מונע בעיות ניווט עם המקלדת
+    private Div createNavItem(String label, Class<? extends com.vaadin.flow.component.Component> view) {
+        Span dot = new Span();
+        dot.addClassName("nav-dot");
 
-        return new Tab(link);
+        RouterLink link = new RouterLink(label, view);
+        link.addClassName("nav-link");
+
+        Div item = new Div(dot, link);
+        item.addClassName("nav-item");
+        return item;
+    }
+
+    private Div createNavItemDisabled(String label, String badgeText) {
+        Span dot = new Span();
+        dot.addClassName("nav-dot");
+        Span text = new Span(label);
+        Span badge = new Span(badgeText);
+        badge.addClassName("nav-badge");
+
+        Div item = new Div(dot, text, badge);
+        item.addClassName("nav-item");
+        item.addClassName("disabled");
+        return item;
+    }
+
+    @Override
+    public void afterNavigation(AfterNavigationEvent event) {
+        // א. מנקים את הצבע מכל הכפתורים במעבר דף
+        usersTab.removeClassName("active");
+        algoTab.removeClassName("active");
+
+        // ב. בודקים באיזו כתובת (URL) אנחנו
+        String currentUrl = event.getLocation().getPath();
+
+        // ג. מדליקים את הכפתור הנכון לפי הכתובת
+        if (currentUrl.equals("match-algo")) {
+            algoTab.addClassName("active");
+        } else if (currentUrl.equals("")) { // כאן צריך להיות הראוט של עמוד המשתמשים
+            usersTab.addClassName("active");
+        }
     }
 }

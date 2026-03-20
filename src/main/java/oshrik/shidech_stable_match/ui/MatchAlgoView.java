@@ -1,32 +1,36 @@
 package oshrik.shidech_stable_match.ui;
 
-import java.util.concurrent.CompletableFuture;
 
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
+import com.vaadin.flow.component.notification.Notification.Position;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.progressbar.ProgressBar;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.component.details.Details;
-import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.html.H3;
 
 
 import oshrik.shidech_stable_match.datamodels.User;
 import oshrik.shidech_stable_match.repositories.UserRepository;
+import oshrik.shidech_stable_match.services.AsyncManagerService;
 import oshrik.shidech_stable_match.services.DataGenerationService;
 import oshrik.shidech_stable_match.services.GaleShapleyService;
 import oshrik.shidech_stable_match.services.MatchmakingService;
+import oshrik.shidech_stable_match.ui.components.MatchCard;
 import oshrik.shidech_stable_match.utilities.ScorePair;
 
+@CssImport("./themes/match-card.css")
 // הכתובת אליה ניגש בדפדפן: localhost:8080/match-algo
 @Route(value = "/match-algo", layout = MainLayout.class)
 @PageTitle("מעבדת אלגוריתם - טסט")
@@ -37,6 +41,7 @@ public class MatchAlgoView extends VerticalLayout {
     private final MatchmakingService matchmakingService;
     private final UserRepository userRepository;
     private final GaleShapleyService galeShapleyService;
+    private final AsyncManagerService backroundCoreProccess;
 
     // רכיב תצוגה - טבלה
     private final Grid<User> userGrid = new Grid<>(User.class, false);
@@ -47,87 +52,75 @@ public class MatchAlgoView extends VerticalLayout {
     // אזור תצוגה חדש עבור התוצאות הסופיות (הכרטיסיות)
     private final HorizontalLayout cardsContainer = new HorizontalLayout();
 
+    // גישה לתצוגה מהלהליכונים
+    private UI ui;
+    private Button btnRunAlgo;
+
     public MatchAlgoView(DataGenerationService dataGenService, MatchmakingService matchmakingService,
-            UserRepository userRepository, GaleShapleyService galeShapleyService) 
+            UserRepository userRepository, GaleShapleyService galeShapleyService,
+            AsyncManagerService backroundCoreProccess) 
     {
        // אתחול תלויות 
         this.dataGenService = dataGenService;
         this.matchmakingService = matchmakingService;
         this.userRepository = userRepository;
         this.galeShapleyService = galeShapleyService;
+        this.backroundCoreProccess = backroundCoreProccess;
 
         // הגדרות עיצוב כלליות למסך
         setSpacing(true);
         setPadding(true);
         setSizeFull();
 
+
         // 1. כותרת המסך
-        H2 title = new H2("\t\t🧪 מעבדת אלגוריתם שידוכים\t\t\t\t");
+        H2 title = new H2("\t\t\t\t" + "\t\t מעבדת אלגוריתם שידוכים\t\t\t\t");
         Span subtitle = new Span("כאן נבדוק את השלבים השונים של האלגוריתם, צעד אחר צעד.");
         
         // 2. הגדרת כפתורי ההפעלה
         Button btnGenerateData = new Button("1. ייצור נתוני בדיקה (Data Generation)");
         btnGenerateData.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         
+
         Button btnCalculateScores = new Button("2. חישוב ציונים והעדפות (Scoring)");
         btnCalculateScores.addThemeVariants(ButtonVariant.LUMO_SUCCESS);
 
-        Button btnRunAlgo = new Button("3. הפעל אלגוריתם שידוכים (Gale-Shapley)");
+        btnRunAlgo = new Button("3. הפעל אלגוריתם שידוכים (Gale-Shapley)");
         btnRunAlgo.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         btnRunAlgo.getStyle().set("background-color", "purple"); // נצבע אותו בסגול שייבלט
 
+        // הוספת גלגל טעינה למסך - מאותחל להיות מוסתר בהתחלה
+        ProgressBar progressBar = new ProgressBar(); // מה אני עושה עם זה ..? מתי אני הופך אותו לנראה ?
+        progressBar.setVisible(false);
+
         btnRunAlgo.addClickListener(e -> {
+            // 1. בדיקת תקינות - מוודאים שיש נתונים
             if (matchmakingService.getCurrentMen() == null || matchmakingService.getCurrentMen().isEmpty()) {
-                Notification.show("חובה לחשב ציונים והעדפות (שלב 2) לפני הרצת האלגוריתם!");
+
+                showErrorNotification("חובה לחשב ציונים והעדפות (שלב 2) לפני הרצת האלגוריתם!");
                 return;
             }
 
-            // 1. בניית חלון הטעינה (ספינר)
-            Dialog loadingDialog = new Dialog();
-            loadingDialog.setCloseOnEsc(false);
-            loadingDialog.setCloseOnOutsideClick(false);
+            showSuccessNotification("Dating on the way !");
 
-            ProgressBar spinner = new ProgressBar();
-            spinner.setIndeterminate(true); // זז ימינה ושמאלה בלי הפסקה
+            // אתחול ui
+            ui = UI.getCurrent();
 
-            VerticalLayout dialogLayout = new VerticalLayout(
-                    new H3("השידוך מתבצע... ⚙️"),
-                    spinner,
-                    new Span("האלגוריתם מחשב כעת את השידוכים היציבים ביותר. נא להמתין."));
-            dialogLayout.setAlignItems(Alignment.CENTER);
-            loadingDialog.add(dialogLayout);
+            // נעילת כפתור
+            btnRunAlgo.setEnabled(false);
 
-            // הצגת חלון הטעינה
-            loadingDialog.open();
+            // הצגת גלגל טעינה - נהפוך אותו לגלוי
+            progressBar.setVisible(true);
 
-            // 2. תפיסת ה-UI הנוכחי כדי שנוכל לחזור אליו מהרקע
-            UI ui = UI.getCurrent();
+            // ננקה את ההעדפות מהמסך
+            listsContainer.removeAll();
 
-            // 3. הרצת האלגוריתם וההמתנה ברקע (אסינכרוני!)
-            CompletableFuture.runAsync(() -> {
-                try {
-                    // האלגוריתם האמיתי רץ בחלקיק שנייה
-                    galeShapleyService.runGaleShapley(matchmakingService.getCurrentMen(),
-                            matchmakingService.getCurrentWomen());
+            // התחלת תהליך שידוכים ברקע
+            runCoreGaleShapleyAlgo(progressBar);
 
-                    // ההמתנה המלאכותית: 10 שניות (10,000 מילישניות)
-                    Thread.sleep(10000);
-                } catch (InterruptedException ex) {
-                    ex.printStackTrace();
-                }
 
-                // 4. חזרה ל-UI הראשי, סגירת החלון והצגת התוצאות
-                ui.access(() -> {
-                    loadingDialog.close();
 
-                    // מעלימים את רשימות ההעדפות כדי לעשות מקום לכרטיסיות
-                    listsContainer.setVisible(false);
-                    userGrid.setVisible(false);
 
-                    drawMatchCards(); // קריאה לפונקציית הציור
-                    showSuccessNotification("השידוך הושלם! התוצאות לפניך.");
-                });
-            });
         });
 
         // 3. הגדרת עמודות הטבלה (כדי שנראה את האנשים שיצרנו)
@@ -143,12 +136,12 @@ public class MatchAlgoView extends VerticalLayout {
         btnGenerateData.addClickListener(e -> 
         {
             // מייצרים 10 גברים ו-10 נשים (סה"כ 20)
-            dataGenService.generateAndSaveUsers(10); 
+            dataGenService.generateAndSaveUsers(20);
             
             // מרעננים את הטבלה שעל המסך
             refreshGrid();
             
-            showSuccessNotification("נוצרו 20 משתמשים חדשים בהצלחה!");
+            showSuccessNotification("נוצרו 40 משתמשים חדשים בהצלחה!");
         });
 
         // לחיצה על כפתור 2: בניית רשימות העדפות
@@ -164,8 +157,11 @@ public class MatchAlgoView extends VerticalLayout {
                 userGrid.setVisible(false);
 
             } catch (Exception ex) {
-                Notification.show("שגיאה בחישוב הציונים: " + ex.getMessage());
+
+                showErrorNotification(" שגיאה בחישוב הציונים ");
+
             }
+
         });
 
         // 4. סידור הרכיבים על המסך
@@ -177,10 +173,82 @@ public class MatchAlgoView extends VerticalLayout {
         cardsContainer.getStyle().set("flex-wrap", "wrap"); // מסדר אותם יפה בשורות
         cardsContainer.getStyle().set("justify-content", "center");
 
-        add(title, subtitle, buttonsLayout, userGrid, listsContainer, cardsContainer);
+        add(title, subtitle, buttonsLayout, progressBar, userGrid, listsContainer, cardsContainer);
 
         // טעינה ראשונית של נתונים (אם כבר קיימים ב-DB)
         refreshGrid();
+    }
+
+    private void runCoreGaleShapleyAlgo(ProgressBar proggressBar) {
+        backroundCoreProccess.executeWithProgress(new Runnable() {
+
+            @Override
+            public void run() {
+                galeShapleyService.runGaleShapley(matchmakingService.getCurrentMen(),
+                        matchmakingService.getCurrentWomen());
+            }
+
+        }, new AsyncManagerService.TaskCallback() {
+
+            @Override
+            public void onComplete(boolean isCompleted) {
+                // מה יקרה כשהאלגוריתם יסיים?
+
+                ui.access(() -> {
+
+                    // 1. הצגת השידוכים בעזרת הכרטיסיות שעשינו
+                    showAlgoResults(); // זה בידוע שקיימים כבר העדפות לכל משתמש
+
+                    // 2. לפתוח את הכפתור
+                    btnRunAlgo.setEnabled(true);
+
+                    // 3. הצגת הודעה למשתמש שהכל נוצר בהצלחה
+                    showSuccessNotification("Algorithem Finished !!!");
+
+                    // סגירת גלגל
+                    proggressBar.setValue(0);
+                    proggressBar.setVisible(false);
+
+                });
+            }
+
+            @Override
+            public void onProgress(int percentage) {
+                // איך נעדכן את המסך בכל פעימה?
+
+                ui.access(() -> {
+
+                    // 1. נרצה שהגלגל יהיה תואם את הזמן וההתקדמות של האלגוריתם
+                    showProggressAlgo(proggressBar, percentage); // זה מטופל בתוך הממשק ?
+
+                    // 2. עדכון חצי הדרך
+                    if (percentage == 50)
+                        showUpdateNotification("We are in the half of the way !!!!");
+
+                });
+
+            }
+
+            @Override
+            public void onError(String message) {
+
+                // מה יקרה אם תהיה שגיאה?
+                ui.access(() -> {
+                    // 1. נקפיץ התראה שאומרת שהתרחשה שגיאה
+                    showErrorNotification("Algo has an Fatal Error ! Try Again Later...");
+                    // 2. נאפס את כל מה שנעול
+                    btnRunAlgo.setEnabled(true);
+                    // 3. נבצע תיקון וניקוי של הנתונים , על מנת שלא ימשיך להיות שגוי
+
+                });
+
+            }
+        });
+
+    }
+
+    private void showProggressAlgo(ProgressBar proggressBar, int precentage) {
+        proggressBar.setValue((precentage / 100.0));
     }
 
     // פעולת עזר לרענון הטבלה
@@ -195,6 +263,17 @@ public class MatchAlgoView extends VerticalLayout {
         notification.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
     }
 
+    // פעולת עזר להצגת הודעות של עדכון למשתמש
+    private void showUpdateNotification(String message) {
+        Notification notification = Notification.show(message, 2000, Notification.Position.TOP_CENTER);
+        notification.addThemeVariants(NotificationVariant.LUMO_CONTRAST);
+    }
+
+    // פעולת עזר להצגת הודעות קופצות אדומות - שגיאה
+    private void showErrorNotification(String message) {
+        Notification notification = Notification.show(message, 4000, Notification.Position.MIDDLE);
+        notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
+    }
  
     private void displayPreferenceLists() {
         listsContainer.removeAll(); // מנקים תצוגה קודמת
@@ -203,21 +282,21 @@ public class MatchAlgoView extends VerticalLayout {
         VerticalLayout menColumn = new VerticalLayout();
         menColumn.add(new H3("רשימות העדפות - גברים 🤵"));
         for (User man : matchmakingService.getCurrentMen()) {
-            menColumn.add(createUserDetails(man));
+            menColumn.add(showAndCreateUserDetails(man));
         }
 
         // עמודת נשים
         VerticalLayout womenColumn = new VerticalLayout();
         womenColumn.add(new H3("רשימות העדפות - נשים 👰"));
         for (User woman : matchmakingService.getCurrentWomen()) {
-            womenColumn.add(createUserDetails(woman));
+            womenColumn.add(showAndCreateUserDetails(woman));
         }
 
         listsContainer.add(menColumn, womenColumn);
     }
 
     // הפונקציה שמייצרת את ה"אקורדיון" הנפתח לכל משתמש
-    private Details createUserDetails(User user) {
+    private Details showAndCreateUserDetails(User user) {
         VerticalLayout prefLayout = new VerticalLayout();
         prefLayout.setSpacing(false);
         prefLayout.setPadding(false);
@@ -235,49 +314,31 @@ public class MatchAlgoView extends VerticalLayout {
     }
 
     /** הפונקציה שמייצרת את הכרטיסיות היפות */
-    private void drawMatchCards() {
+    private void showAlgoResults() {
         cardsContainer.removeAll();
 
         // עוברים על כל הגברים ובודקים את הסטטוס שלהם
         for (User man : matchmakingService.getCurrentMen()) {
             User partner = man.getCurrentPartner();
 
-            // יצירת הקופסה של הכרטיסייה
-            VerticalLayout card = new VerticalLayout();
-            card.setWidth("320px");
-            card.getStyle()
-                    .set("border", "1px solid var(--lumo-contrast-20pct)")
-                    .set("border-radius", "10px")
-                    .set("box-shadow", "0 4px 8px rgba(0,0,0,0.1)") // צללית עדינה
-                    .set("padding", "var(--lumo-space-l)")
-                    .set("background-color", "white")
-                    .set("align-items", "center");
-
             if (partner != null) {
                 // יש שידוך! שולפים את הציון
                 double score = findScore(man, partner);
 
-                Span coupleText = new Span("🤵 " + man.getFullName() + "  💍  👰 " + partner.getFullName());
-                coupleText.getStyle().set("font-weight", "bold").set("font-size", "1.1em");
+                // כאן ניצור את הכרטיסייה המעוצבת החדשה!
+                MatchCard card = new MatchCard(man.getFullName(), partner.getFullName(), score);
 
-                Span scoreText = new Span("⭐ ציון התאמה סופי: " + String.format("%.1f", score) + " ⭐");
-                scoreText.getStyle().set("color", "green").set("font-weight", "bold").set("margin-top", "10px");
+                cardsContainer.add(card);
 
-                card.add(coupleText, scoreText);
-                card.getStyle().set("border-top", "6px solid purple"); // פס סגול למעלה לשידוך מוצלח
             } else {
-                // אין שידוך
-                Span singleText = new Span("🤵 " + man.getFullName());
-                singleText.getStyle().set("font-weight", "bold");
+                // אין שידוך (קופסה פשוטה או טקסט שיתווסף למסך)
+                Div singleCard = new Div();
+                singleCard.setText("🤵 " + man.getFullName() + " | נותר ללא שידוך בסבב זה 💔");
+                singleCard.getStyle().set("padding", "10px").set("border", "1px solid gray").set("border-radius",
+                        "8px");
 
-                Span noMatchText = new Span("נותר ללא שידוך בסבב זה 💔");
-                noMatchText.getStyle().set("color", "gray");
-
-                card.add(singleText, noMatchText);
-                card.getStyle().set("border-top", "6px solid gray"); // פס אפור
+                cardsContainer.add(singleCard);
             }
-
-            cardsContainer.add(card);
         }
     }
 
