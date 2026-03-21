@@ -27,6 +27,7 @@ import oshrik.shidech_stable_match.services.AsyncManagerService;
 import oshrik.shidech_stable_match.services.DataGenerationService;
 import oshrik.shidech_stable_match.services.GaleShapleyService;
 import oshrik.shidech_stable_match.services.MatchmakingService;
+import oshrik.shidech_stable_match.services.UserService;
 import oshrik.shidech_stable_match.ui.components.MatchCard;
 import oshrik.shidech_stable_match.utilities.ScorePair;
 
@@ -40,6 +41,7 @@ public class MatchAlgoView extends VerticalLayout {
     private final DataGenerationService dataGenService;
     private final MatchmakingService matchmakingService;
     private final UserRepository userRepository;
+    private UserService userService;
     private final GaleShapleyService galeShapleyService;
     private final AsyncManagerService backroundCoreProccess;
 
@@ -57,13 +59,14 @@ public class MatchAlgoView extends VerticalLayout {
     private Button btnRunAlgo;
 
     public MatchAlgoView(DataGenerationService dataGenService, MatchmakingService matchmakingService,
-            UserRepository userRepository, GaleShapleyService galeShapleyService,
+            UserRepository userRepository, UserService userService, GaleShapleyService galeShapleyService,
             AsyncManagerService backroundCoreProccess) 
     {
        // אתחול תלויות 
         this.dataGenService = dataGenService;
         this.matchmakingService = matchmakingService;
         this.userRepository = userRepository;
+        this.userService = userService;
         this.galeShapleyService = galeShapleyService;
         this.backroundCoreProccess = backroundCoreProccess;
 
@@ -135,6 +138,9 @@ public class MatchAlgoView extends VerticalLayout {
         // לחיצה על כפתור 1: ייצור נתונים
         btnGenerateData.addClickListener(e -> 
         {
+            // נמחק מה שקיים
+            userService.deleteAllUsers();
+
             // מייצרים 10 גברים ו-10 נשים (סה"כ 20)
             dataGenService.generateAndSaveUsers(20);
             
@@ -177,6 +183,16 @@ public class MatchAlgoView extends VerticalLayout {
 
         // טעינה ראשונית של נתונים (אם כבר קיימים ב-DB)
         refreshGrid();
+
+        // שמירת מצב (State Management)
+        if (matchmakingService.getCurrentMen() != null && !matchmakingService.getCurrentMen().isEmpty()) {
+            // אם לאחד מהם כבר יש שידוך, נציג מיד את הכרטיסיות
+            if (matchmakingService.getCurrentMen().get(0).getCurrentPartner() != null) {
+                showAlgoResults();
+                userGrid.setVisible(false); // מעלים את טבלת הבסיס כדי לחסוך מקום
+            }
+        }
+
     }
 
     private void runCoreGaleShapleyAlgo(ProgressBar proggressBar) {
