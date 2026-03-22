@@ -24,7 +24,7 @@ import oshrik.shidech_stable_match.services.MatchmakingService;
 import oshrik.shidech_stable_match.services.UserService;
 import oshrik.shidech_stable_match.utilities.SessionHelper;
 
-@Route(value = "/", layout = MainLayout.class)
+@Route(value = "/UserView", layout = MainLayout.class)
 public class UserView extends VerticalLayout implements BeforeEnterObserver 
 {
 
