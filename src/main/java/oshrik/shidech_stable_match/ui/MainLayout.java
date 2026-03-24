@@ -34,7 +34,7 @@ public class MainLayout extends AppLayout {
 
         // --- פריטי ניווט ---
         Div navLinks = new Div(
-                createNavItem("אדמין משתמשים", UserView.class),
+                createNavItem("אדמין משתמשים", AdminView.class),
                 createNavItem("פיילוט אלגוריתם", MatchAlgoView.class),
                 createNavItemDisabled("צ'אט — בקרוב"));
         navLinks.addClassName("nav-links");

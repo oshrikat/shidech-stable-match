@@ -55,7 +55,22 @@ public interface UserRepository extends MongoRepository<User, String> {
     // פונקציה לשליפת כל המשתמשים לפי מגדר
     public List<User> findByGender(User.Gender gender);
 
-    // java.util.List<oshrik.shidech_stable_match.datamodels.User>
-    // findByGender(oshrik.shidech_stable_match.datamodels.User.Gender gender);
+    /**
+     * פונקציה למציאת משתמש במסד הנתונים לפי מזהה האימייל
+     * 
+     * @param email - האימייל שאיתו נזהה ונשלוף את המשתמש הרצוי ממסד הנתונים
+     * @return החזרת המשתמש אם קיים , במידה ולא יוחזר null
+     */
+    public User findOneByEmail(String email);
+
+    /**
+     * פונקציה אשר בודקת האם האימייל קיים בבסיס נתונים - האם קיים משתמש עם האימייל
+     * אסור שיהיו 2 משתמשים עם אותו האימייל
+     * 
+     * @param email - האימייל שאותו מחפשים בתוך הבסיס נתונים
+     * @return נחזיר אמת כאשר יש משתמש כזה אחרת , במקרה ובו האימייל לא קיים נחזיר
+     *         שקר
+     */
+    public boolean existsByEmail(String email);
 
 }

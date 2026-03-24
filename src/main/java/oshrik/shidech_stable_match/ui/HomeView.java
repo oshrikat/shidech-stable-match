@@ -18,6 +18,8 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.theme.lumo.LumoUtility.Margin.Minus.Horizontal;
 
+import oshrik.shidech_stable_match.utilities.RouteHelper;
+
 @Route(value = "/", layout = MainLayout.class)
 @PageTitle("Shidech Matchmaker | דף הבית")
 public class HomeView extends VerticalLayout 
@@ -83,6 +85,11 @@ public class HomeView extends VerticalLayout
         btn_startNow_heroSection.getStyle().setBorder("1px solid white"); 
         btn_startNow_heroSection.getStyle().setBorderRadius("45px"); 
         btn_startNow_heroSection.getStyle().set("background-color", "transparent");
+
+        // טיפול בלחיצה על כפתור של רישום או התחברות
+        btn_startNow_heroSection.addClickListener(e -> {
+            RouteHelper.navigateTo(AuthView.class);
+        });
 
         heroLayout.add(header_heroSection,text_heroSection,btn_startNow_heroSection);
 

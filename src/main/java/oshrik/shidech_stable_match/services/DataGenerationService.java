@@ -1,5 +1,6 @@
 package oshrik.shidech_stable_match.services;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -68,7 +69,7 @@ public class DataGenerationService
         
         // גיל ותאריך לידה (שנות ה-80 וה-90)
         int birthYear = 1985 + rand.nextInt(19); 
-        u.setBirthDate(new GregorianCalendar(birthYear, rand.nextInt(12), 1).getTime());
+        u.setBirthDate(LocalDate.of(birthYear, rand.nextInt(12) + 1, 1));
 
         // מיקום גיאוגרפי
         u.setAddress(new Location(32.0 + rand.nextDouble(), 34.7 + rand.nextDouble())); 

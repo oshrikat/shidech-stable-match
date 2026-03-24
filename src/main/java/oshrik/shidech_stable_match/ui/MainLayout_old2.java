@@ -39,7 +39,7 @@ public class MainLayout_old2 extends AppLayout implements AfterNavigationObserve
 
         // --- פריטי ניווט ---
         // כאן אנחנו משתמשים במשתנים שהגדרנו למעלה
-        usersTab = createNavItem("אדמין משתמשים", UserView.class);
+        usersTab = createNavItem("אדמין משתמשים", AdminView.class);
         algoTab = createNavItem("פיילוט אלגוריתם", MatchAlgoView.class);
         Div chatTab = createNavItemDisabled("צ'אט", "בקרוב");
 

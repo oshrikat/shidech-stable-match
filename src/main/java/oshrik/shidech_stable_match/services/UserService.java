@@ -17,14 +17,6 @@ public class UserService
         this.userRepository = userRepository;
     }
 
-    // C (Create)
-    public boolean addUserToDB(User user) {
-        if (userRepository.existsByUsername(user.getUsername())) {
-            return false;
-        }
-        userRepository.insert(user);
-        return true;
-    }
 
     // החזרת ArrayList כמו שביקשת (בצורה בטוחה)
     // R (Read)
@@ -47,15 +39,10 @@ public class UserService
         }
     }
 
-    public void updateUser(User u) {
-        User user = userRepository.findById(u.getUsername()).orElse(null);
-        if (user != null) {
-            user.setPassword(u.getPassword());
-            user.setUsername(u.getUsername());
-
-            // שמירת השינויים
-            userRepository.save(user);
-        }
+    // עדכון פרופיל מלא של משתמש (למשל אחרי סיום השאלון)
+    public void updateFullUser(User u) {
+        // מונגו מזהה את המשתמש ופשוט שומר את כל האובייקט המעודכן עליו
+        userRepository.save(u);
     }
 
     public ArrayList<User> findByUsernameLike(User user) {
@@ -84,6 +71,49 @@ public class UserService
 
     public void deleteAllUsers() {
         userRepository.deleteAll();
+    }
+
+    /**
+     * פונקציה שנועדה לבצע חיבור למשתמש שרשום למערכת
+     * 
+     * @param email    - האימייל של אותו משתמש שהוא פוטנציאל רשום בתוך הבסיס נתונים
+     * @param password - הסיסמא של המשתמש שמנסה להתחבר
+     * @return - אם המשתמש רשום , נחזיר אמת ונכניס אותו למשתמש , נבצע חיבור , אחרת
+     *         נחזיר שגיאה , יוחזר שקר
+     */
+    public User loginUser(String email, String password) {
+        User userCheck = userRepository.findOneByEmail(email);
+
+        if (userCheck != null) {
+            // נבצע התחברות
+
+            // 1. בדיקת סיסמא
+            if (userCheck.getPassword().equals(password)) {
+                return userCheck;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * פוקנציה אשר מבצעת רישום משתמש בסיסי למסד הנתונים לצורך כניסה ראשונית
+     * 
+     * @param newUser - המשתמש שרוצה להירשם
+     * @return מחזיר אמת כאשר ההרשמה בוצעה בהצלחה , אחרת מחזיר שקר כי קיים משתמש כזה
+     */
+    public boolean registerNewUser(User newUser) {
+
+        if (!(userRepository.existsByEmail(newUser.getEmail()))) {
+            // אין משתמש כזה , לכן נוכל להכניסו למסד הנתונים בהצלחה
+            userRepository.insert(newUser);
+            return true;
+
+        }
+
+        // המשתמש קיים , לכן לא נוכל לבצע הרשמה
+
+        return false;
     }
 
 }

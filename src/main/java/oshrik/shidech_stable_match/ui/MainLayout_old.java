@@ -29,9 +29,9 @@ public class MainLayout_old extends AppLayout {
         
         // הוספת הלשוניות (משתמשים בפונקציית העזר שיצרנו למטה)
         menuTabs.add(
-            createTab("אדמין משתמשים", UserView.class),
+                createTab("אדמין משתמשים", AdminView.class),
             createTab("פיילוט אלגוריתם", MatchAlgoView.class),
-            createTab("צ'אט (בקרוב)", UserView.class) // כרגע מפנה לאותו מקום עד שניצור דף
+                createTab("צ'אט (בקרוב)", AdminView.class) // כרגע מפנה לאותו מקום עד שניצור דף
         );
 
         // הגדרה שהתפריט ייקח את הרוחב שנותר וייראה טוב

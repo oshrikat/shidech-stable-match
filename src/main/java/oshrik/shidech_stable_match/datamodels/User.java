@@ -1,7 +1,8 @@
 package oshrik.shidech_stable_match.datamodels;
 
+import java.time.LocalDate;
+import java.time.Period;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 import org.springframework.data.annotation.Id;
@@ -86,6 +87,9 @@ public class User {
     private String id;
     private String username;
     private String password;
+    private String email;
+    /* האם המשתמש השלים את הרישום ? */
+    boolean isProfileComplete = false;
 
     // ==========================================
     // פרק 1: היכרות בסיסית וזהות (Identity)
@@ -93,7 +97,7 @@ public class User {
 
     private String firstName;
     private String lastName;
-    private Date birthDate;
+    private LocalDate birthDate;
     private Gender gender;
 
     private Location address; // יחזור לפעולה כשניצור את מחלקת Location
@@ -138,12 +142,13 @@ public class User {
     private int scaleAgreeableness;
     private int scaleOpenness;
 
+
     // ==========================================
     // פרק 5: מצב באלגוריתם (Algorithm State - לא נשמר ב-DB)
     // ==========================================
 
     /*
-     * @Transient אומר ל-Spring Data: "זה משתנה לוגי בלבד, אל תשמור במונגו!"
+     * @Transient אומר ל - Spring Data: "זה משתנה לוגי בלבד, אל תשמור במונגו!"
      */
 
     @Transient
@@ -168,9 +173,10 @@ public class User {
     /**
      * בנאי אתחול בסיסי למשתמש חדש (התחברות).
      */
-    public User(String username, String password) {
+    public User(String username, String password, String email) {
         this.username = username;
         this.password = password;
+        this.email = email;
     }
 
     // ==========================================
@@ -178,11 +184,13 @@ public class User {
     // ==========================================
 
     /** מחשב את גיל המשתמש בשנים שלמות לפי תאריך הלידה */
+    /** מחשב את גיל המשתמש בשנים שלמות לפי תאריך הלידה */
     public int getAge() {
-        if (birthDate == null)
+        if (birthDate == null) {
             return 0;
-        long diff = new Date().getTime() - birthDate.getTime();
-        return (int) (diff / (1000L * 60 * 60 * 24 * 365.25));
+        }
+        // חישוב התקופה (Period) בין תאריך הלידה להיום, ושליפת מספר השנים
+        return Period.between(birthDate, LocalDate.now()).getYears();
     }
 
     /** מחזיר את השם המלא לתצוגה */
@@ -283,11 +291,11 @@ public class User {
         this.lastName = lastName;
     }
 
-    public Date getBirthDate() {
+    public LocalDate getBirthDate() {
         return birthDate;
     }
 
-    public void setBirthDate(Date birthDate) {
+    public void setBirthDate(LocalDate birthDate) {
         this.birthDate = birthDate;
     }
 
@@ -531,6 +539,22 @@ public class User {
 
     public void setPreferencesScores(ArrayList<ScorePair> preferencesScores) {
         this.preferencesScores = preferencesScores;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public boolean isProfileComplete() {
+        return isProfileComplete;
+    }
+
+    public void setProfileComplete(boolean isProfileComplete) {
+        this.isProfileComplete = isProfileComplete;
     }
 
 }

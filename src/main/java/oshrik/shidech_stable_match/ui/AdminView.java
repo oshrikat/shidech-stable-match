@@ -22,10 +22,11 @@ import oshrik.shidech_stable_match.datamodels.User;
 import oshrik.shidech_stable_match.services.DataGenerationService;
 import oshrik.shidech_stable_match.services.MatchmakingService;
 import oshrik.shidech_stable_match.services.UserService;
+import oshrik.shidech_stable_match.utilities.RouteHelper;
 import oshrik.shidech_stable_match.utilities.SessionHelper;
 
-@Route(value = "/UserView", layout = MainLayout.class)
-public class UserView extends VerticalLayout implements BeforeEnterObserver 
+@Route(value = "/admin", layout = MainLayout.class)
+public class AdminView extends VerticalLayout implements BeforeEnterObserver 
 {
 
     private UserService userService;
@@ -36,14 +37,17 @@ public class UserView extends VerticalLayout implements BeforeEnterObserver
     private TextField userPassWordField;
     private Button btnInsert, btnClearData;
 
-    public UserView(UserService userService) {
+    // פרטי משתמש
+    String userName;
+
+    public AdminView(UserService userService) {
 
         // אתחול התלויות
         this.userService = userService;
 
         // --- 1. כותרות ופרטי סשן ---
-        String userName = "?";
-        User user = (User) SessionHelper.getAttribute("USER");
+        userName = "?";
+        User user = (User) SessionHelper.getAttribute("currentUser");
         if (user != null) {
             userName = user.getUsername();
         }
@@ -123,30 +127,9 @@ public class UserView extends VerticalLayout implements BeforeEnterObserver
     }
 
     private void insertUserToDB() {
-        String userName = userNameTextField.getValue();
-        String userPassword = userPassWordField.getValue();
 
-        if (userName.isBlank() || userPassword.isBlank()) {
-            Notification.show("Username and Password can't be empty!", 3000, Position.MIDDLE);
-            return;
-        }
 
-        try {
-            // קריאה לפונקציה הנכונה מה-Service והוספת המשתמש
-            boolean isAdded = userService.addUserToDB(new User(userName, userPassword));
 
-            if (isAdded) {
-                Notification.show("User Inserted Successfully!", 3000, Position.BOTTOM_CENTER);
-                userNameTextField.clear(); // ניקוי השדות אחרי הוספה
-                userPassWordField.clear();
-                refreshGrid(); // רענון הטבלה שתראה את המשתמש החדש
-            } else {
-                Notification.show("User already exists!", 4000, Position.MIDDLE);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            Notification.show("Error: " + e.getMessage(), 5000, Position.MIDDLE);
-        }
     }
 
     private void refreshGrid() {
@@ -154,19 +137,30 @@ public class UserView extends VerticalLayout implements BeforeEnterObserver
     }
 
     private void logout() {
-        SessionHelper.removeAttribute("USER");
+        SessionHelper.removeAttribute("currentUser");
         SessionHelper.invalidate();
         // RouteHelper.navigateTo(HomeView.class);
     }
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
-        // מנגנון הגנה - אם אין סשן, תיאורטית יזרוק לעמוד לוגין
-        // כרגע בהערה כדי שלא יקרוס אם LoginView לא קיים
-        /*
-         * if (!SessionHelper.isAttributeExist("USER")) {
-         * event.forwardTo(LoginView.class);
-         * }
-         */
+
+        User u = (User) SessionHelper.getAttribute("currentUser");
+
+        if (u == null)
+            event.forwardTo(AuthView.class);
+        else {
+            if (u.isProfileComplete()) {
+                // מדובר במשתמש קיים שכבר עבר את השאלון
+                // לא נעשה כלום ..?
+
+            } else {
+                // קיים משתמש , אך לא השלים עדיין את השאלון
+                // event.forwardTo(Wizard.class);
+
+            }
+
+        }
+
     }
 }
