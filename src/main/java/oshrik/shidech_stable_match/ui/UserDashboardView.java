@@ -1,5 +1,7 @@
 package oshrik.shidech_stable_match.ui;
 
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 import com.vaadin.flow.component.html.H2;
@@ -18,14 +20,13 @@ import oshrik.shidech_stable_match.datamodels.User;
 import oshrik.shidech_stable_match.services.MatchScoreService;
 import oshrik.shidech_stable_match.utilities.SessionHelper;
 
-@Route(value = "/userDashboard")
+@Route(value = "/userDashboard", layout = MainLayout.class)
 public class UserDashboardView extends VerticalLayout implements BeforeEnterObserver {
 
     private User currUser;
-    private final MatchScoreService matchScoreService; // שירות שנותן לנו מידע מעודכן על הציוני התאמה בין האנשים במערכת
+    private final MatchScoreService matchScoreService;
 
     public UserDashboardView(MatchScoreService matchScoreService) {
-
         this.matchScoreService = matchScoreService;
 
         setSizeFull();
@@ -79,18 +80,15 @@ public class UserDashboardView extends VerticalLayout implements BeforeEnterObse
         statusCard.getStyle().set("padding", "30px");
         statusCard.getStyle().set("margin-top", "20px");
 
-        // בדיקה לוגית: האם האלגוריתם כבר שידך לו מישהו?
         if (currUser.getCurrentPartner() == null) {
-            // מצב המתנה
             H3 statusTitle = new H3("⏳ ממתין להתאמה...");
             Span statusSub = new Span("האלגוריתם שלנו פעיל וסורק את המערכת. ההתאמה המושלמת תגיע בקרוב.");
             statusSub.getStyle().set("color", "gray");
             statusCard.add(statusTitle, statusSub);
         } else {
-            // מצב התאמה!
             User match = currUser.getCurrentPartner();
             H3 statusTitle = new H3("יש לך התאמה! 🎉");
-            statusTitle.getStyle().set("color", "#d93871"); // צבע בולט
+            statusTitle.getStyle().set("color", "#d93871");
             Span statusSub = new Span("הכר את " + match.getFullName() + " (גיל: " + match.getAge() + "). איזה יופי!");
             statusCard.add(statusTitle, statusSub);
         }
@@ -98,7 +96,7 @@ public class UserDashboardView extends VerticalLayout implements BeforeEnterObse
         return statusCard;
     }
 
-    // --- חלק 3: סטטיסטיקות ---
+    // --- חלק 3: סטטיסטיקות מעודכן ודינמי ---
     private HorizontalLayout create_Part3_Stats() {
         HorizontalLayout statsLayout = new HorizontalLayout();
         statsLayout.setWidth("80%");
@@ -106,14 +104,30 @@ public class UserDashboardView extends VerticalLayout implements BeforeEnterObse
         statsLayout.getStyle().set("margin-top", "20px");
 
         statsLayout.add(
-            createStatBox("ימים במערכת", "1"),
-            createStatBox("התאמות שהתקבלו", "0"),
-                createStatBox("ציון התאמה מקסימלי", getBestScoreExists()) // הנתון האמיתי ממונגו!
+                createStatBox("ימים במערכת", calculateDaysInSystem()), // קורא לפונקציה הדינמית
+                createStatBox("התאמות שהתקבלו", "0"), // יעודכן כשניצור את אוסף ה-Matches
+                createStatBox("ציון התאמה מקסימלי", getBestScoreExists())
         );
 
         return statsLayout;
     }
 
+    // פונקציית עזר לחישוב ימים במערכת
+    private String calculateDaysInSystem() {
+        if (currUser == null || currUser.getRegistrationDate() == null) {
+            return "1"; // ברירת מחדל אם טרם הוגדר תאריך למשתמש זה
+        }
+
+        try {
+            // חישוב למקרה ששדה התאריך הוא מסוג LocalDateTime או LocalDate
+            LocalDateTime regDate = currUser.getRegistrationDate();
+            long days = ChronoUnit.DAYS.between(regDate, LocalDateTime.now());
+            return String.valueOf(Math.max(1, days)); // תמיד נציג לפחות יום אחד
+        } catch (Exception e) {
+
+            return "1";
+        }
+    }
 
     private VerticalLayout createStatBox(String title, String value) {
         VerticalLayout box = new VerticalLayout();
@@ -133,13 +147,12 @@ public class UserDashboardView extends VerticalLayout implements BeforeEnterObse
         return box;
     }
 
-    // --- חלק 4: אזור מפוצל (פרופיל ואישיות) ---
+    // --- חלק 4: אזור מפוצל ---
     private HorizontalLayout create_Part4_SplitZone() {
         HorizontalLayout splitLayout = new HorizontalLayout();
         splitLayout.setWidth("80%");
         splitLayout.getStyle().set("margin-top", "20px");
 
-        // צד ימין - פרטי הפרופיל
         VerticalLayout profileCard = new VerticalLayout();
         profileCard.getStyle().set("background-color", "white");
         profileCard.getStyle().set("border-radius", "15px");
@@ -154,7 +167,6 @@ public class UserDashboardView extends VerticalLayout implements BeforeEnterObse
         profileCard.add(new Span("רקע דתי: " + (currUser.getReligiousLevel() != null ? currUser.getReligiousLevel().name() : "לא הוגדר")));
         profileCard.add(new Span("מקצוע: " + (currUser.getOccupation() != null ? currUser.getOccupation().name() : "לא הוגדר")));
 
-        // צד שמאל - מדדי אישיות (Progress Bars)
         VerticalLayout personalityCard = new VerticalLayout();
         personalityCard.getStyle().set("background-color", "white");
         personalityCard.getStyle().set("border-radius", "15px");
@@ -205,28 +217,18 @@ public class UserDashboardView extends VerticalLayout implements BeforeEnterObse
     }
 
     private String getBestScoreExists() {
-
-        // לוגיקה לשליפת הציון הגבוה ביותר של המשתמש
-        String maxScoreText = "-";
+        String maxScoreText = "?";
         if (currUser != null && currUser.getId() != null) {
-
-            // שולפים את הרשימה הממוינת לפי המגדר של המשתמש
             List<MatchScore> scores = (currUser.getGender() == User.Gender.MALE)
                     ? matchScoreService.getRankedWomenForMan(currUser.getId())
                     : matchScoreService.getRankedMenForWoman(currUser.getId());
 
-            // אם יש ציונים במערכת, הראשון (אינדקס 0) הוא הגבוה ביותר
             if (scores != null && !scores.isEmpty()) {
-
                 double max = scores.get(0).getTotalScore();
-                maxScoreText = String.format("%.1f%%", max); // עיצוב עם נקודה עשרונית אחת ואחוז
-
+                maxScoreText = String.format("%.1f%%", max);
             }
-
         }
-
         return maxScoreText;
-
     }
 
     @Override

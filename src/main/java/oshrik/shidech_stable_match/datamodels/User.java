@@ -1,6 +1,7 @@
 package oshrik.shidech_stable_match.datamodels;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.Period;
 import java.util.ArrayList;
 import java.util.List;
@@ -79,6 +80,11 @@ public class User {
         OTHER // אחר
     }
 
+    public enum ROLE {
+        ADMIN, // אדמין - הרשאות מנהל
+        USER // משתמש רגיל
+    }
+
     // ==========================================
     // פרק 0: נתוני מערכת והתחברות (DB & Auth)
     // ==========================================
@@ -90,6 +96,10 @@ public class User {
     private String email;
     /* האם המשתמש השלים את הרישום ? */
     boolean isProfileComplete = false;
+
+    private LocalDateTime registrationDate;
+
+    private ROLE role; // רמת הרשאה במערכת
 
     // ==========================================
     // פרק 1: היכרות בסיסית וזהות (Identity)
@@ -168,17 +178,33 @@ public class User {
      * בנאי ריק (Default Constructor) - חובה עבור שליפה מ-MongoDB.
      */
     public User() {
+        this.registrationDate = LocalDateTime.now(); // שמירת זמן ההרשמה הנוכחי
+
     }
 
     /**
-     * בנאי אתחול בסיסי למשתמש חדש (התחברות).
+     * בנאי אתחול בסיסי למשתמש חדש.
      */
     public User(String username, String password, String email) {
         this.username = username;
         this.password = password;
         this.email = email;
+
+        this.registrationDate = LocalDateTime.now(); // שמירת זמן ההרשמה הנוכחי
+        role = ROLE.USER;
     }
 
+    /**
+     * בנאי אתחול בסיסי לאדמין חדש .
+     */
+    public User(String username, String password, String email, ROLE role) {
+        this.username = username;
+        this.password = password;
+        this.email = email;
+
+        this.registrationDate = LocalDateTime.now(); // שמירת זמן ההרשמה הנוכחי
+        role = ROLE.ADMIN;
+    }
     // ==========================================
     // פעולות אלגוריתם (Algorithm Logic)
     // ==========================================
@@ -555,6 +581,22 @@ public class User {
 
     public void setProfileComplete(boolean isProfileComplete) {
         this.isProfileComplete = isProfileComplete;
+    }
+
+    public LocalDateTime getRegistrationDate() {
+        return registrationDate;
+    }
+
+    public void setRegistrationDate(LocalDateTime registrationDate) {
+        this.registrationDate = registrationDate;
+    }
+
+    public ROLE getRole() {
+        return role;
+    }
+
+    public void setRole(ROLE role) {
+        this.role = role;
     }
 
 }

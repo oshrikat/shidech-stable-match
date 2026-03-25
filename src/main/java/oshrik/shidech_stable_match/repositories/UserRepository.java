@@ -53,7 +53,7 @@ public interface UserRepository extends MongoRepository<User, String> {
     public boolean existsByUsername(String userName);
 
     // פונקציה לשליפת כל המשתמשים לפי מגדר
-    public List<User> findByGender(User.Gender gender);
+    public List<User> findByGenderAndRole(User.Gender gender, User.ROLE role);
 
     /**
      * פונקציה למציאת משתמש במסד הנתונים לפי מזהה האימייל

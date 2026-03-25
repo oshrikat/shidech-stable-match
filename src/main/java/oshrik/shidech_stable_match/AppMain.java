@@ -8,7 +8,8 @@ import com.vaadin.flow.component.page.Push;
 
 @Push
 @SpringBootApplication
-public class AppMain implements AppShellConfigurator {
+public class AppMain implements AppShellConfigurator 
+{
 
 	public static void main(String[] args) 
 	{
