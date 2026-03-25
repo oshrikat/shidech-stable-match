@@ -1,5 +1,7 @@
 package oshrik.shidech_stable_match.ui;
 
+import java.util.List;
+
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.H4;
@@ -11,15 +13,21 @@ import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.Route;
 
+import oshrik.shidech_stable_match.datamodels.MatchScore;
 import oshrik.shidech_stable_match.datamodels.User;
+import oshrik.shidech_stable_match.services.MatchScoreService;
 import oshrik.shidech_stable_match.utilities.SessionHelper;
 
 @Route(value = "/userDashboard")
 public class UserDashboardView extends VerticalLayout implements BeforeEnterObserver {
 
     private User currUser;
+    private final MatchScoreService matchScoreService; // שירות שנותן לנו מידע מעודכן על הציוני התאמה בין האנשים במערכת
 
-    public UserDashboardView() {
+    public UserDashboardView(MatchScoreService matchScoreService) {
+
+        this.matchScoreService = matchScoreService;
+
         setSizeFull();
         setAlignItems(Alignment.CENTER);
         getStyle().set("direction", "rtl"); 
@@ -97,15 +105,15 @@ public class UserDashboardView extends VerticalLayout implements BeforeEnterObse
         statsLayout.setJustifyContentMode(JustifyContentMode.AROUND);
         statsLayout.getStyle().set("margin-top", "20px");
 
-        // נתונים פיקטיביים זמניים עד שניצור מערכת תאריכים והיסטוריה במסד הנתונים
         statsLayout.add(
             createStatBox("ימים במערכת", "1"),
             createStatBox("התאמות שהתקבלו", "0"),
-            createStatBox("ציון התאמה ממוצע", "-")
+                createStatBox("ציון התאמה מקסימלי", getBestScoreExists()) // הנתון האמיתי ממונגו!
         );
 
         return statsLayout;
     }
+
 
     private VerticalLayout createStatBox(String title, String value) {
         VerticalLayout box = new VerticalLayout();
@@ -194,6 +202,31 @@ public class UserDashboardView extends VerticalLayout implements BeforeEnterObse
         historyCard.add(new Span("כאן יופיעו ההתאמות הקודמות שלך לאחר שנפעיל את המערכת."));
 
         return historyCard;
+    }
+
+    private String getBestScoreExists() {
+
+        // לוגיקה לשליפת הציון הגבוה ביותר של המשתמש
+        String maxScoreText = "-";
+        if (currUser != null && currUser.getId() != null) {
+
+            // שולפים את הרשימה הממוינת לפי המגדר של המשתמש
+            List<MatchScore> scores = (currUser.getGender() == User.Gender.MALE)
+                    ? matchScoreService.getRankedWomenForMan(currUser.getId())
+                    : matchScoreService.getRankedMenForWoman(currUser.getId());
+
+            // אם יש ציונים במערכת, הראשון (אינדקס 0) הוא הגבוה ביותר
+            if (scores != null && !scores.isEmpty()) {
+
+                double max = scores.get(0).getTotalScore();
+                maxScoreText = String.format("%.1f%%", max); // עיצוב עם נקודה עשרונית אחת ואחוז
+
+            }
+
+        }
+
+        return maxScoreText;
+
     }
 
     @Override
