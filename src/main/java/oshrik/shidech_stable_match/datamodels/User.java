@@ -80,9 +80,21 @@ public class User {
         OTHER // אחר
     }
 
+    /**
+     * Enum המייצג מצב משתמש - הרשאות משתמש.
+     * משתמש לניהול הרשאות תקין במסכי המערכת ופעולות שניתן לבצע / נתונים או תהליכים
+     * שניתן ליזום ולראות
+     */
     public enum ROLE {
         ADMIN, // אדמין - הרשאות מנהל
         USER // משתמש רגיל
+    }
+
+    public enum UserStatus {
+        AVAILABLE, // פנוי ומוכן לשידוך
+        PENDING_APPROVAL, // ממתין לאישור (האלגוריתם שידך, מחכים שיענו למייל)
+        IN_RELATIONSHIP, // תפוס/בזוגיות
+        INACTIVE // מוקפא/לא פעיל (למשתמש שרוצה הפסקה מהאפליקציה)
     }
 
     // ==========================================
@@ -100,6 +112,8 @@ public class User {
     private LocalDateTime registrationDate;
 
     private ROLE role; // רמת הרשאה במערכת
+
+    private UserStatus status;
 
     // ==========================================
     // פרק 1: היכרות בסיסית וזהות (Identity)
@@ -192,6 +206,7 @@ public class User {
 
         this.registrationDate = LocalDateTime.now(); // שמירת זמן ההרשמה הנוכחי
         role = ROLE.USER;
+        status = UserStatus.AVAILABLE;
     }
 
     /**
@@ -597,6 +612,14 @@ public class User {
 
     public void setRole(ROLE role) {
         this.role = role;
+    }
+
+    public UserStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(UserStatus status_user) {
+        this.status = status_user;
     }
 
 }

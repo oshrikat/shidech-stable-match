@@ -1,6 +1,8 @@
 package oshrik.shidech_stable_match.ui;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.Period;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
@@ -105,29 +107,33 @@ public class UserDashboardView extends VerticalLayout implements BeforeEnterObse
 
         statsLayout.add(
                 createStatBox("ימים במערכת", calculateDaysInSystem()), // קורא לפונקציה הדינמית
-                createStatBox("התאמות שהתקבלו", "0"), // יעודכן כשניצור את אוסף ה-Matches
+                createStatBox("התאמות שהתקבלו", getCountFirstMatches()), // בינתיים התאמות ראשוניות
                 createStatBox("ציון התאמה מקסימלי", getBestScoreExists())
         );
 
         return statsLayout;
     }
 
-    // פונקציית עזר לחישוב ימים במערכת
-    private String calculateDaysInSystem() {
-        if (currUser == null || currUser.getRegistrationDate() == null) {
-            return "1"; // ברירת מחדל אם טרם הוגדר תאריך למשתמש זה
-        }
-
-        try {
-            // חישוב למקרה ששדה התאריך הוא מסוג LocalDateTime או LocalDate
-            LocalDateTime regDate = currUser.getRegistrationDate();
-            long days = ChronoUnit.DAYS.between(regDate, LocalDateTime.now());
-            return String.valueOf(Math.max(1, days)); // תמיד נציג לפחות יום אחד
-        } catch (Exception e) {
-
-            return "1";
-        }
+    private String getCountFirstMatches() {
+        return String.valueOf(currUser.getPreferencesScores().size());
     }
+
+    private String calculateDaysInSystem() {
+
+        return String.valueOf(Period.between(currUser.getRegistrationDate().toLocalDate(), LocalDate.now()).getDays());
+
+        /*
+         * if (currUser == null || currUser.getRegistrationDate() == null) {
+         * return "1";
+         * }
+         * 
+         * LocalDate regDate = currUser.getRegistrationDate().toLocalDate();
+         * long days = ChronoUnit.DAYS.between(regDate, LocalDate.now());
+         * 
+         * return String.valueOf(Math.max(1, days + 1));
+         */
+    }
+
 
     private VerticalLayout createStatBox(String title, String value) {
         VerticalLayout box = new VerticalLayout();

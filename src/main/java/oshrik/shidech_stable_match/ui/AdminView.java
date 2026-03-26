@@ -146,21 +146,22 @@ public class AdminView extends VerticalLayout implements BeforeEnterObserver
     public void beforeEnter(BeforeEnterEvent event) {
 
         User u = (User) SessionHelper.getAttribute("currentUser");
-
-        if (u == null)
-            event.forwardTo(AuthView.class);
-        else {
-            if (u.isProfileComplete()) {
-                // מדובר במשתמש קיים שכבר עבר את השאלון
-                // לא נעשה כלום ..?
-
-            } else {
-                // קיים משתמש , אך לא השלים עדיין את השאלון
-                // event.forwardTo(Wizard.class);
-
-            }
-
-        }
+        /*
+         * if (u == null)
+         * event.forwardTo(AuthView.class);
+         * else {
+         * if (u.isProfileComplete()) {
+         * // מדובר במשתמש קיים שכבר עבר את השאלון
+         * // לא נעשה כלום ..?
+         * 
+         * } else {
+         * // קיים משתמש , אך לא השלים עדיין את השאלון
+         * // event.forwardTo(Wizard.class);
+         * 
+         * }
+         * 
+         * }
+         */
 
     }
 }

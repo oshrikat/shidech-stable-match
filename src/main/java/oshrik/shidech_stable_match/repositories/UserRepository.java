@@ -52,8 +52,8 @@ public interface UserRepository extends MongoRepository<User, String> {
     // האם השתמש משתמש כבר קיים ?
     public boolean existsByUsername(String userName);
 
-    // פונקציה לשליפת כל המשתמשים לפי מגדר
-    public List<User> findByGenderAndRole(User.Gender gender, User.ROLE role);
+    // פונקציה לשליפת כל המשתמשים שרלוונטיים לשידוך
+    public List<User> findByGenderAndRoleAndStatus(User.Gender gender, User.ROLE role, User.UserStatus status);
 
     /**
      * פונקציה למציאת משתמש במסד הנתונים לפי מזהה האימייל

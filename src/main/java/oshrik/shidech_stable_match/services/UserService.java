@@ -116,4 +116,9 @@ public class UserService
         return false;
     }
 
+    public User findUserById(String id) {
+
+        return userRepository.findById(id).orElse(null);
+    }
+
 }

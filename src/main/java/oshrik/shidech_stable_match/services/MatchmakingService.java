@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import oshrik.shidech_stable_match.datamodels.User;
 import oshrik.shidech_stable_match.datamodels.User.Gender;
 import oshrik.shidech_stable_match.datamodels.User.ROLE;
+import oshrik.shidech_stable_match.datamodels.User.UserStatus;
 import oshrik.shidech_stable_match.datamodels.MatchScore;
 import oshrik.shidech_stable_match.repositories.UserRepository;
 import oshrik.shidech_stable_match.utilities.ScorePair;
@@ -31,8 +32,8 @@ public class MatchmakingService {
     }
 
     public void prepareAndFillPreferences() {
-        this.currentMen = userRepository.findByGenderAndRole(Gender.MALE, ROLE.USER);
-        this.currentWomen = userRepository.findByGenderAndRole(Gender.FEMALE, ROLE.USER);
+        this.currentMen = userRepository.findByGenderAndRoleAndStatus(Gender.MALE, ROLE.USER, UserStatus.AVAILABLE);
+        this.currentWomen = userRepository.findByGenderAndRoleAndStatus(Gender.FEMALE, ROLE.USER, UserStatus.AVAILABLE);
 
         // שלב 1: מנקים את מסד הנתונים מהציונים הישנים לפני שמתחילים חישוב חדש
         matchScoreService.cleanScoreMatchTable();
