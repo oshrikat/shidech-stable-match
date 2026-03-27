@@ -15,6 +15,8 @@ import com.vaadin.flow.component.notification.Notification.Position;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.progressbar.ProgressBar;
+import com.vaadin.flow.router.BeforeEnterEvent;
+import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.component.details.Details;
@@ -22,6 +24,7 @@ import com.vaadin.flow.component.html.H3;
 
 
 import oshrik.shidech_stable_match.datamodels.User;
+import oshrik.shidech_stable_match.datamodels.User.ROLE;
 import oshrik.shidech_stable_match.repositories.UserRepository;
 import oshrik.shidech_stable_match.services.AsyncManagerService;
 import oshrik.shidech_stable_match.services.DataGenerationService;
@@ -30,12 +33,13 @@ import oshrik.shidech_stable_match.services.MatchmakingService;
 import oshrik.shidech_stable_match.services.UserService;
 import oshrik.shidech_stable_match.ui.components.MatchCard;
 import oshrik.shidech_stable_match.utilities.ScorePair;
+import oshrik.shidech_stable_match.utilities.SessionHelper;
 
 @CssImport("./themes/match-card.css")
 // הכתובת אליה ניגש בדפדפן: localhost:8080/match-algo
-@Route(value = "/match-algo", layout = MainLayout.class)
+@Route(value = "/match-algo", layout = AdminAppLayout.class)
 @PageTitle("מעבדת אלגוריתם - טסט")
-public class MatchAlgoView extends VerticalLayout {
+public class MatchAlgoView extends VerticalLayout implements BeforeEnterObserver {
 
     // הזרקת השירותים
     private final DataGenerationService dataGenService;
@@ -368,6 +372,21 @@ public class MatchAlgoView extends VerticalLayout {
             }
         }
         return 0.0;
+    }
+
+    @Override
+    public void beforeEnter(BeforeEnterEvent event) {
+
+        User u = (User) SessionHelper.getAttribute("currentUser");
+
+        if (u != null) {
+
+            if (!(u.getRole().equals(ROLE.MASTER_ADMIN)))
+                event.forwardTo(UserDashboardView.class);
+        } else {
+            event.forwardTo(AuthView.class);
+        }
+
     }
 
 }

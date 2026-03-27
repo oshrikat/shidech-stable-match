@@ -86,6 +86,7 @@ public class User {
      * שניתן ליזום ולראות
      */
     public enum ROLE {
+        MASTER_ADMIN,
         ADMIN, // אדמין - הרשאות מנהל
         USER // משתמש רגיל
     }

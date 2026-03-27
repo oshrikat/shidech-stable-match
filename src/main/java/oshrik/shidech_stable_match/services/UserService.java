@@ -121,4 +121,13 @@ public class UserService
         return userRepository.findById(id).orElse(null);
     }
 
+    public boolean saveAdminUser(User newAdminUser) {
+
+        if (newAdminUser != null) {
+            userRepository.save(newAdminUser);
+            return true;
+        }
+        return false;
+    }
+
 }

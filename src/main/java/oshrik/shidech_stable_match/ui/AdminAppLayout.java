@@ -1,6 +1,8 @@
 package oshrik.shidech_stable_match.ui;
 
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.applayout.AppLayout;
+import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Span;
@@ -9,50 +11,46 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.router.HighlightConditions;
 import com.vaadin.flow.router.RouterLink;
 
-@CssImport("./themes/navbar.css")
-public class MainLayout extends AppLayout {
+import oshrik.shidech_stable_match.utilities.RouteHelper;
+import oshrik.shidech_stable_match.utilities.SessionHelper;
 
-    public MainLayout() {
+@CssImport("./themes/navbar.css")
+public class AdminAppLayout extends AppLayout {
+
+    public AdminAppLayout() {
         createHeader();
     }
 
     private void createHeader() {
-
-        // --- לוגו ---
+        
         Span brandName = new Span("You'r Next Shidech");
         brandName.addClassName("brand-name");
-
         Span brandTagline = new Span("השידעך הבא שלך");
         brandTagline.addClassName("brand-tagline");
 
         HorizontalLayout brand = new HorizontalLayout(brandName, brandTagline);
         brand.addClassName("brand");
-        brand.setDefaultVerticalComponentAlignment(
-                FlexComponent.Alignment.BASELINE);
+        brand.setDefaultVerticalComponentAlignment(FlexComponent.Alignment.BASELINE);
         brand.setSpacing(false);
         brand.getStyle().set("gap", "6px");
 
-        // --- פריטי ניווט ---
+        // --- קישורי אדמין ---
         Div navLinks = new Div(
                 createNavItem("אדמין משתמשים", AdminView.class),
-                createNavItem("פיילוט אלגוריתם", MatchAlgoView.class),
-                createNavItemDisabled("צ'אט — בקרוב"));
+                createNavItem("פיילוט אלגוריתם", MatchAlgoView.class)
+        );
         navLinks.addClassName("nav-links");
 
-        // --- spacer ---
         Div spacer = new Div();
         spacer.getStyle().set("flex", "1");
-
-        // --- תג dev ---
-        Span devBadge = new Span("בפיתוח");
+        
+        Span devBadge = new Span("Admin Mode 🛠️");
         devBadge.addClassName("env-badge");
 
-        // --- הרכבה ---
-        HorizontalLayout navbar = new HorizontalLayout(
-                brand, navLinks, spacer, devBadge);
+        // --- הרכבה כולל כפתור התנתקות ---
+        HorizontalLayout navbar = new HorizontalLayout(brand, navLinks, spacer, devBadge, createLogoutButton());
         navbar.addClassName("main-navbar");
-        navbar.setDefaultVerticalComponentAlignment(
-                FlexComponent.Alignment.CENTER);
+        navbar.setDefaultVerticalComponentAlignment(FlexComponent.Alignment.CENTER);
         navbar.setWidthFull();
 
         addToNavbar(navbar);
@@ -62,27 +60,34 @@ public class MainLayout extends AppLayout {
         RouterLink link = new RouterLink(label, view);
         link.addClassName("nav-link");
         link.setTabIndex(-1);
-
-        // --- התיקון: אומרים ל-Vaadin מתי ואיך להדליק את הקו התחתון ---
         link.setHighlightCondition(HighlightConditions.sameLocation());
         link.setHighlightAction((item, highlight) -> {
-            if (highlight) {
-                item.addClassName("active"); // נדלק
-            } else {
-                item.removeClassName("active"); // נכבה
-            }
+            if (highlight) item.addClassName("active");
+            else item.removeClassName("active");
         });
-
         Div item = new Div(link);
         item.addClassName("nav-item");
         return item;
     }
 
-    private Div createNavItemDisabled(String label) {
-        Span text = new Span(label);
-        Div item = new Div(text);
-        item.addClassName("nav-item");
-        item.addClassName("nav-item--muted");
-        return item;
+     private Button createLogoutButton() {
+        // כפתור ההתנתקות
+
+        Button logout = new Button("התנתק");
+
+        logout.addClickListener(e ->{
+            // ניגש למשתמש שכרגע מחובר ונמחק אותו - נעיף אותו 
+            SessionHelper.removeAttribute("currentUser");
+
+            SessionHelper.invalidate();
+
+            // נפנה את המשתמש שהתנתק ישר לדף הבית
+            RouteHelper.navigateTo(HomeView.class);
+
+        });
+
+
+        return logout;
     }
+
 }

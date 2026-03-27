@@ -15,6 +15,7 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.Route;
 
 import oshrik.shidech_stable_match.datamodels.User;
+import oshrik.shidech_stable_match.datamodels.User.ROLE;
 import oshrik.shidech_stable_match.services.UserService;
 import oshrik.shidech_stable_match.utilities.RouteHelper;
 import oshrik.shidech_stable_match.utilities.SessionHelper;
@@ -88,7 +89,10 @@ public class AuthView extends HorizontalLayout
                 Notification.show("User Seccecfully Logged In to System !",2000,Position.MIDDLE,true);
                 SessionHelper.setAttribute("currentUser", loginUser);
                 
-                RouteHelper.navigateTo(UserDashboardView.class);
+                if (loginUser.getRole().equals(ROLE.USER))
+                    RouteHelper.navigateTo(UserDashboardView.class);
+                else
+                    RouteHelper.navigateTo(AdminView.class);
 
             }
             else    

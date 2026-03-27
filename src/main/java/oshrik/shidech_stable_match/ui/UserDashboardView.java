@@ -22,7 +22,7 @@ import oshrik.shidech_stable_match.datamodels.User;
 import oshrik.shidech_stable_match.services.MatchScoreService;
 import oshrik.shidech_stable_match.utilities.SessionHelper;
 
-@Route(value = "/userDashboard", layout = MainLayout.class)
+@Route(value = "/userDashboard", layout = UserAppLayout.class)
 public class UserDashboardView extends VerticalLayout implements BeforeEnterObserver {
 
     private User currUser;

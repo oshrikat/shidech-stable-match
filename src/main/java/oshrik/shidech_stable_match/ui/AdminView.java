@@ -4,6 +4,7 @@ import java.util.ArrayList;
 
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H1;
@@ -19,13 +20,14 @@ import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.Route;
 
 import oshrik.shidech_stable_match.datamodels.User;
+import oshrik.shidech_stable_match.datamodels.User.ROLE;
 import oshrik.shidech_stable_match.services.DataGenerationService;
 import oshrik.shidech_stable_match.services.MatchmakingService;
 import oshrik.shidech_stable_match.services.UserService;
 import oshrik.shidech_stable_match.utilities.RouteHelper;
 import oshrik.shidech_stable_match.utilities.SessionHelper;
 
-@Route(value = "/admin", layout = MainLayout.class)
+@Route(value = "/admin", layout = AdminAppLayout.class)
 public class AdminView extends VerticalLayout implements BeforeEnterObserver 
 {
 
@@ -35,6 +37,7 @@ public class AdminView extends VerticalLayout implements BeforeEnterObserver
     // רכיבי הוספת משתמש
     private TextField userNameTextField;
     private TextField userPassWordField;
+    private ComboBox<ROLE> combo_chooseRole;
     private Button btnInsert, btnClearData;
 
     // פרטי משתמש
@@ -59,9 +62,12 @@ public class AdminView extends VerticalLayout implements BeforeEnterObserver
         // --- 2. אזור הוספת משתמש חדש ---
         userNameTextField = new TextField("New Username");
         userPassWordField = new TextField("New Password");
+        combo_chooseRole = new ComboBox<ROLE>("Select Role");
+        combo_chooseRole.setItems(ROLE.ADMIN, ROLE.MASTER_ADMIN);
         btnInsert = new Button("Add User", e -> insertUserToDB());
 
-        HorizontalLayout addLayout = new HorizontalLayout(userNameTextField, userPassWordField, btnInsert);
+        HorizontalLayout addLayout = new HorizontalLayout(userNameTextField, userPassWordField, combo_chooseRole,
+                btnInsert);
         addLayout.setDefaultVerticalComponentAlignment(Alignment.END);
 
         // --- 3. אזור חיפוש ---
@@ -127,7 +133,34 @@ public class AdminView extends VerticalLayout implements BeforeEnterObserver
     }
 
     private void insertUserToDB() {
+        String name = userNameTextField.getValue();
+        String pass = userPassWordField.getValue();
+        ROLE role = combo_chooseRole.getValue();
 
+        if (!name.isEmpty() && !pass.isEmpty() && role != null) {
+            // נשמור את המנהל החדש במסד הנתונים
+
+            /* ניצור משתמש */
+            User newAdminUser = new User(name, pass, pass, role);
+
+            /* נשמור עליו בבסיס הנתונים */
+            if (userService.saveAdminUser(newAdminUser)) {
+                Notification.show("User Saved Seccussfully !! ", 4000, Position.TOP_STRETCH, true);
+                userNameTextField.clear();
+                userPassWordField.clear();
+                combo_chooseRole.clear();
+                refreshGrid();
+
+            } else
+                Notification.show("User Not Saved !! ", 4000, Position.TOP_STRETCH, true);
+
+        }
+
+        else {
+
+            Notification.show("Please Fill All The Fields");
+
+        }
 
 
     }
@@ -146,22 +179,14 @@ public class AdminView extends VerticalLayout implements BeforeEnterObserver
     public void beforeEnter(BeforeEnterEvent event) {
 
         User u = (User) SessionHelper.getAttribute("currentUser");
-        /*
-         * if (u == null)
-         * event.forwardTo(AuthView.class);
-         * else {
-         * if (u.isProfileComplete()) {
-         * // מדובר במשתמש קיים שכבר עבר את השאלון
-         * // לא נעשה כלום ..?
-         * 
-         * } else {
-         * // קיים משתמש , אך לא השלים עדיין את השאלון
-         * // event.forwardTo(Wizard.class);
-         * 
-         * }
-         * 
-         * }
-         */
+
+        if (u != null) {
+
+            if (!(u.getRole().equals(ROLE.ADMIN)) && !(u.getRole().equals(ROLE.MASTER_ADMIN)))
+                event.forwardTo(UserDashboardView.class);
+        } else {
+            event.forwardTo(AuthView.class);
+        }
 
     }
 }

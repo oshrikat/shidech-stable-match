@@ -20,7 +20,7 @@ import com.vaadin.flow.theme.lumo.LumoUtility.Margin.Minus.Horizontal;
 
 import oshrik.shidech_stable_match.utilities.RouteHelper;
 
-@Route(value = "/", layout = MainLayout.class)
+@Route(value = "/", layout = UserAppLayout.class)
 @PageTitle("Shidech Matchmaker | דף הבית")
 public class HomeView extends VerticalLayout 
 {
