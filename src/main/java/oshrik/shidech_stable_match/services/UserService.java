@@ -1,10 +1,12 @@
 package oshrik.shidech_stable_match.services;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import org.springframework.stereotype.Service;
 
 import oshrik.shidech_stable_match.datamodels.User;
+import oshrik.shidech_stable_match.datamodels.User.ROLE;
 import oshrik.shidech_stable_match.repositories.UserRepository;
 
 @Service
@@ -73,6 +75,10 @@ public class UserService
         userRepository.deleteAll();
     }
 
+    public void deleteAllUsers_NO_ADMIN() {
+        userRepository.deleteByRole(ROLE.USER);
+    }
+
     /**
      * פונקציה שנועדה לבצע חיבור למשתמש שרשום למערכת
      * 
@@ -128,6 +134,10 @@ public class UserService
             return true;
         }
         return false;
+    }
+
+    public List<User> findAll() {
+        return userRepository.findAll();
     }
 
 }

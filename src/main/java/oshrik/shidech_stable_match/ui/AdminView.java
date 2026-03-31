@@ -116,7 +116,7 @@ public class AdminView extends VerticalLayout implements BeforeEnterObserver
 
         dialog.addConfirmListener(event -> {
             // מחיקה של כל המשתמשים
-            userService.deleteAllUsers();
+            userService.deleteAllUsers_NO_ADMIN();
             refreshGrid(); // רענון הטבלה במסך
             Notification.show("המסד נוקה בהצלחה! ✨");
         });

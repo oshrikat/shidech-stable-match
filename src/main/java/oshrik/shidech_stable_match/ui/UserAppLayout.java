@@ -28,7 +28,7 @@ public class UserAppLayout extends AppLayout {
         // --- עיצוב הלוגו ---
         Span brandName = new Span("You'r Next Shidech");
         brandName.addClassName("brand-name");
-        Span brandTagline = new Span("השידעך הבא שלך");
+        Span brandTagline = new Span(" שִׁידֶעךְ הבא שלך");
         brandTagline.addClassName("brand-tagline");
 
         HorizontalLayout brand = new HorizontalLayout(brandName, brandTagline);
@@ -40,7 +40,7 @@ public class UserAppLayout extends AppLayout {
         // --- המשימה שלך: קישורי המשתמש ---
         Div navLinks = new Div(
               createNavItem("אזור אישי", UserDashboardView.class),
-                createNavItem("השידוך שלי",UserDashboardView.class) // בינתיים
+                createNavItem(" השִׁידֶעךְ שלי", MyMatchView.class)
         );
         navLinks.addClassName("nav-links");
 

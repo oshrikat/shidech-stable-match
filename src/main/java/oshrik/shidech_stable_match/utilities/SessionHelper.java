@@ -2,7 +2,7 @@ package oshrik.shidech_stable_match.utilities;
 
 import com.vaadin.flow.server.VaadinSession;
 
-import oshrik.shidech_stable_match.datamodels.User2;
+import oshrik.shidech_stable_match.datamodels.User;
 
 
 public class SessionHelper 

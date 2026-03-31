@@ -76,9 +76,8 @@ public class WizardView extends VerticalLayout implements BeforeEnterObserver {
         Button finishBtn = new Button("סיום ושמירה!", e -> {
             
             // 1. בדיקת חובה בסיסית
-            if (firstNameField.isEmpty() || lastNameField.isEmpty() || birthDateField.isEmpty() ||
-                genderComboBox.isEmpty() || maritalStatusComboBox.isEmpty()) {
-                Notification.show("נא למלא לפחות את פרטי החובה בחלק הראשון!", 4000, Notification.Position.MIDDLE);
+            if (!checkPart1() || !checkPart2() || !checkPart3() || !checkPart4()) {
+                Notification.show("נא מלאו את כל הפרטים!", 4000, Notification.Position.MIDDLE);
                 return; 
             }
 
@@ -220,7 +219,6 @@ public class WizardView extends VerticalLayout implements BeforeEnterObserver {
         scaleAgreeablenessField = new IntegerField("נועם הליכות (Agreeableness)");
         scaleOpennessField = new IntegerField("פתיחות לחוויות (Openness)");
 
-        // הגדרת גבולות לכל השדות בעזרת מערך קצר כדי לחסוך קוד
         IntegerField[] personalityFields = {scaleExtraversionField, scaleOrderlinessField, scaleEmotionalField, scaleAgreeablenessField, scaleOpennessField};
         for (IntegerField field : personalityFields) {
             field.setMin(1);
@@ -233,6 +231,124 @@ public class WizardView extends VerticalLayout implements BeforeEnterObserver {
         return layout;
     }
 
+    // ==========================================
+    // פונקציות בדיקה (Validation) לכל פרק
+    // ==========================================
+
+    private boolean checkPart1() {
+        boolean isValid = true;
+        if (!validateTextField(firstNameField))
+            isValid = false;
+        if (!validateTextField(lastNameField))
+            isValid = false;
+        if (birthDateField.isEmpty()) {
+            birthDateField.setInvalid(true);
+            birthDateField.setErrorMessage("תאריך חובה!");
+            isValid = false;
+        } else {
+            birthDateField.setInvalid(false);
+        }
+        if (!validateComboBox(genderComboBox))
+            isValid = false;
+        if (!validateComboBox(maritalStatusComboBox))
+            isValid = false;
+        return isValid;
+    }
+
+    private boolean checkPart2() {
+        boolean isValid = true;
+        if (!validateComboBox(religiousLevelBox))
+            isValid = false;
+        if (!validateComboBox(occupationBox))
+            isValid = false;
+        if (!validateComboBox(ethnicityBox))
+            isValid = false;
+        if (!validateIntegerField(heightField))
+            isValid = false;
+
+        // check box אין צורך לבדוק , לא חייב
+        // אם משתמש סימן זה true אחרת false
+
+        return isValid;
+    }
+
+    private boolean checkPart3() {
+        boolean isValid = true;
+        if (!validateMultiSelect(allowedReligiousLevelsBox))
+            isValid = false;
+        if (!validateMultiSelect(allowedOccupationsBox))
+            isValid = false;
+        if (!validateIntegerField(maxDistanceField))
+            isValid = false;
+        // עדות פסולות (forbiddenEthnicitiesBox) זה בסדר להשאיר ריק, לא חובה שיהיה
+        // לאנשים Blacklist
+        return isValid;
+    }
+
+    private boolean checkPart4() {
+        boolean isValid = true;
+        if (!validateIntegerField(scaleExtraversionField))
+            isValid = false;
+        if (!validateIntegerField(scaleOrderlinessField))
+            isValid = false;
+        if (!validateIntegerField(scaleEmotionalField))
+            isValid = false;
+        if (!validateIntegerField(scaleAgreeablenessField))
+            isValid = false;
+        if (!validateIntegerField(scaleOpennessField))
+            isValid = false;
+        return isValid;
+    }
+
+    // ==========================================
+    // פונקציות עזר לבדיקת רכיבים שונים
+    // ==========================================
+
+    private boolean validateComboBox(ComboBox<?> comboBox) {
+        if (comboBox.isEmpty()) {
+            comboBox.setInvalid(true);
+            comboBox.setErrorMessage("חובה לבחור!");
+            return false;
+        }
+        comboBox.setInvalid(false);
+        return true;
+    }
+
+    private boolean validateMultiSelect(MultiSelectComboBox<?> comboBox) {
+        if (comboBox.isEmpty()) {
+            comboBox.setInvalid(true);
+            comboBox.setErrorMessage("נא לבחור לפחות אפשרות אחת!");
+            return false;
+        }
+        comboBox.setInvalid(false);
+        return true;
+    }
+
+    private boolean validateTextField(TextField textField) {
+        if (textField.isEmpty()) {
+            textField.setInvalid(true);
+            textField.setErrorMessage("שדה חובה!");
+            return false;
+        }
+        textField.setInvalid(false);
+        return true;
+    }
+
+    private boolean validateIntegerField(IntegerField intField) {
+        if (intField.isEmpty()) {
+            intField.setInvalid(true);
+            intField.setErrorMessage("חובה להזין מספר!");
+            return false;
+        } else if ((intField.isInvalid())) {
+
+            intField.setInvalid(true);
+            intField.setErrorMessage("חובה להזין מספר בין 1 ל 10 בלבד!");
+            return false;
+        }
+
+        intField.setInvalid(false);
+        return true;
+    }
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {

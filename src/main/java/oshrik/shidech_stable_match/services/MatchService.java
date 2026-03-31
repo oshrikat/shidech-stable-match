@@ -1,5 +1,6 @@
 package oshrik.shidech_stable_match.services;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -12,19 +13,23 @@ import oshrik.shidech_stable_match.datamodels.User.Gender;
 import oshrik.shidech_stable_match.datamodels.User.UserStatus;
 import oshrik.shidech_stable_match.repositories.MatchRepository;
 import oshrik.shidech_stable_match.repositories.UserRepository;
+import oshrik.shidech_stable_match.utilities.ScorePair;
 
 @Service
 public class MatchService {
 
+    private final GaleShapleyAlgoService galeShapleyService;
     private final UserService userService;
     private final UserRepository userRepository;
     private final MatchRepository matchRepository;
     // בהמשך נוסיף לכאן גם את שירות האימיילים: private final EmailService emailService;
 
-    public MatchService(MatchRepository matchRepository, UserRepository userRepository, UserService userService) {
+    public MatchService(MatchRepository matchRepository, UserRepository userRepository, UserService userService,
+            GaleShapleyAlgoService galeShapleyService) {
         this.matchRepository = matchRepository;
         this.userRepository = userRepository;
         this.userService = userService;
+        this.galeShapleyService = galeShapleyService;
     }
 
     /**
@@ -79,6 +84,9 @@ public class MatchService {
         // לשלוף את השידוך לפי ה matchId
         Match curMatch = matchRepository.findOneMatchById(matchId);
 
+        if (curMatch == null)
+            return false;
+
         // לעדכן את השדה הנכון (manAgreed או womanAgreed) לפי ה-gender
         if(gender.equals(Gender.MALE))
             curMatch.setManAgreed(isAccepted);
@@ -105,8 +113,6 @@ public class MatchService {
             matchRepository.save(curMatch);
             return false;
         }
-        // מחשבה שלי , אני לא מבין את ההיגיון, הרי : לא כדאי לבדוק קודם כל אם המשתנה isAccepted הוא false , ולעצור שם אם באמת הוא false , כי כל השידוך בעצם יתבטל , ואפשר להחזיר ruturn , אני טועה ?
-
 
        // - אם שניהם (manAgreed ו-womanAgreed) הם true -> הסטטוס הופך ל-ACTIVE_DATING.
         if (Boolean.TRUE.equals(curMatch.getManAgreed()) && Boolean.TRUE.equals(curMatch.getWomanAgreed())) {
@@ -133,4 +139,56 @@ public class MatchService {
 
         return false;
     }
+
+    // תהליך מרכזי - אלגוריתם גייל שייפלי
+
+    public List<Match> runAlgo_performFullMatchmaking(List<User> mens, List<User> womens) {
+        // 1. הפעלת האלגוריתם (החישוב בזיכרון)
+        galeShapleyService.runGaleShapley(mens, womens);
+
+        List<Match> matchesToSave = new ArrayList<>();
+
+        // 2. מעבר על התוצאות בזיכרון והפיכתן לנתונים במסד הנתונים
+        for (User man : mens) {
+            User woman = man.getCurrentPartner();
+
+            if (woman != null) {
+                // יצירת אובייקט Match חדש
+                Match newMatch = new Match(man.getId(), woman.getId(), findScore(man, woman));
+                newMatch.setStatus(MatchStatus.PENDING_RESPONSES); // סטטוס התחלתי
+                matchesToSave.add(newMatch);
+
+                // עדכון הסטטוס של המשתמשים עצמם
+                man.setStatus(UserStatus.PENDING_APPROVAL);
+                woman.setStatus(UserStatus.PENDING_APPROVAL);
+            }
+        }
+
+        // אוסף של תוצאות שידוך סופי
+        matchRepository.saveAll(matchesToSave);
+        // אוסף של משתמשים
+        userRepository.saveAll(mens);
+        userRepository.saveAll(womens);
+
+        System.out.println("Saved " + matchesToSave.size() + " new matches to DB.");
+
+        return matchesToSave;
+    }
+
+    /** פונקציית עזר לשליפת ציון ההתאמה מתוך רשימת ההעדפות */
+    private double findScore(User man, User partner) {
+        if (man.getPreferencesScores() != null) {
+            for (ScorePair sp : man.getPreferencesScores()) {
+                if (sp.getCandidate().getId().equals(partner.getId())) {
+                    return sp.getScore();
+                }
+            }
+        }
+        return 0.0;
+    }
+
+    public List<Match> findAllMatches() {
+        return matchRepository.findAll();
+    }
+
 }

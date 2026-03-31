@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 
 import oshrik.shidech_stable_match.datamodels.User;
 import oshrik.shidech_stable_match.datamodels.User.Gender;
+import oshrik.shidech_stable_match.datamodels.User.ROLE;
 
 /**
  * ממשק לניהול פעולות CRUD מול אוסף המשתמשים ב-MongoDB.
@@ -72,5 +73,8 @@ public interface UserRepository extends MongoRepository<User, String> {
      *         שקר
      */
     public boolean existsByEmail(String email);
+
+    // מחיקת כל ההמשתשים שהם לא מנהלים - כלומר , משתמשים רגילים
+    public void deleteByRole(ROLE role);
 
 }

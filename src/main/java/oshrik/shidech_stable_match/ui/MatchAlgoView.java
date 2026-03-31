@@ -1,6 +1,8 @@
 package oshrik.shidech_stable_match.ui;
 
 
+import java.util.List;
+
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -22,13 +24,15 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.component.details.Details;
 import com.vaadin.flow.component.html.H3;
 
-
+import oshrik.shidech_stable_match.datamodels.Match;
 import oshrik.shidech_stable_match.datamodels.User;
 import oshrik.shidech_stable_match.datamodels.User.ROLE;
 import oshrik.shidech_stable_match.repositories.UserRepository;
 import oshrik.shidech_stable_match.services.AsyncManagerService;
 import oshrik.shidech_stable_match.services.DataGenerationService;
-import oshrik.shidech_stable_match.services.GaleShapleyService;
+import oshrik.shidech_stable_match.services.GaleShapleyAlgoService;
+import oshrik.shidech_stable_match.services.MatchAlgoFacadeService;
+import oshrik.shidech_stable_match.services.MatchService;
 import oshrik.shidech_stable_match.services.MatchmakingService;
 import oshrik.shidech_stable_match.services.UserService;
 import oshrik.shidech_stable_match.ui.components.MatchCard;
@@ -42,12 +46,8 @@ import oshrik.shidech_stable_match.utilities.SessionHelper;
 public class MatchAlgoView extends VerticalLayout implements BeforeEnterObserver {
 
     // הזרקת השירותים
-    private final DataGenerationService dataGenService;
-    private final MatchmakingService matchmakingService;
-    private final UserRepository userRepository;
-    private UserService userService;
-    private final GaleShapleyService galeShapleyService;
-    private final AsyncManagerService backroundCoreProccess;
+    private final MatchAlgoFacadeService matchAlgoFacadeService;
+    private AsyncManagerService backroundCoreProccess;
 
     // רכיב תצוגה - טבלה
     private final Grid<User> userGrid = new Grid<>(User.class, false);
@@ -62,16 +62,15 @@ public class MatchAlgoView extends VerticalLayout implements BeforeEnterObserver
     private UI ui;
     private Button btnRunAlgo;
 
-    public MatchAlgoView(DataGenerationService dataGenService, MatchmakingService matchmakingService,
-            UserRepository userRepository, UserService userService, GaleShapleyService galeShapleyService,
-            AsyncManagerService backroundCoreProccess) 
+    // משתנה שישמור את התוצאות שחוזרות מהשירות
+    private List<Match> finalAlgoMatches;
+    private List<User> currentManList;
+    private List<User> currentWomanList;
+
+    public MatchAlgoView(MatchAlgoFacadeService matchAlgoFacadeService, AsyncManagerService backroundCoreProccess) 
     {
-       // אתחול תלויות 
-        this.dataGenService = dataGenService;
-        this.matchmakingService = matchmakingService;
-        this.userRepository = userRepository;
-        this.userService = userService;
-        this.galeShapleyService = galeShapleyService;
+        // אתחול תלות מרכזית - המנהל
+        this.matchAlgoFacadeService = matchAlgoFacadeService;
         this.backroundCoreProccess = backroundCoreProccess;
 
         // הגדרות עיצוב כלליות למסך
@@ -102,7 +101,10 @@ public class MatchAlgoView extends VerticalLayout implements BeforeEnterObserver
 
         btnRunAlgo.addClickListener(e -> {
             // 1. בדיקת תקינות - מוודאים שיש נתונים
-            if (matchmakingService.getCurrentMen() == null || matchmakingService.getCurrentMen().isEmpty()) {
+            currentManList = matchAlgoFacadeService.getCurrentMen();
+            currentWomanList = matchAlgoFacadeService.getCurrentWomen();
+            if ((currentManList == null || currentManList.isEmpty())
+                    || (currentWomanList == null || currentWomanList.isEmpty())) {
 
                 showErrorNotification("חובה לחשב ציונים והעדפות (שלב 2) לפני הרצת האלגוריתם!");
                 return;
@@ -126,8 +128,6 @@ public class MatchAlgoView extends VerticalLayout implements BeforeEnterObserver
             runCoreGaleShapleyAlgo(progressBar);
 
 
-
-
         });
 
         // 3. הגדרת עמודות הטבלה (כדי שנראה את האנשים שיצרנו)
@@ -142,13 +142,9 @@ public class MatchAlgoView extends VerticalLayout implements BeforeEnterObserver
         // לחיצה על כפתור 1: ייצור נתונים
         btnGenerateData.addClickListener(e -> 
         {
-            // נמחק מה שקיים
-            userService.deleteAllUsers();
 
-            // מייצרים 10 גברים ו-10 נשים (סה"כ 20)
-            dataGenService.generateAndSaveUsers(20);
-            
-            // מרעננים את הטבלה שעל המסך
+            matchAlgoFacadeService.generateAndSaveUsers_Safe(20);
+
             refreshGrid();
             
             showSuccessNotification("נוצרו 40 משתמשים חדשים בהצלחה!");
@@ -157,9 +153,14 @@ public class MatchAlgoView extends VerticalLayout implements BeforeEnterObserver
         // לחיצה על כפתור 2: בניית רשימות העדפות
         btnCalculateScores.addClickListener(e -> {
             try {
-                matchmakingService.prepareAndFillPreferences();
+
+                matchAlgoFacadeService.prepareAndFillPreferences();
                 showSuccessNotification("הציונים חושבו ורשימות ההעדפות מוינו בהצלחה!");
                 
+                // עדכון הרשימות
+                currentManList = matchAlgoFacadeService.getCurrentMen();
+                currentWomanList = matchAlgoFacadeService.getCurrentWomen();
+
                 // קריאה לפונקציה החדשה שמציירת את הרשימות
                 displayPreferenceLists();
                 
@@ -168,7 +169,7 @@ public class MatchAlgoView extends VerticalLayout implements BeforeEnterObserver
 
             } catch (Exception ex) {
 
-                showErrorNotification(" שגיאה בחישוב הציונים ");
+                showErrorNotification(" שגיאה בחישוב הציונים \n " + ex.toString());
 
             }
 
@@ -188,13 +189,21 @@ public class MatchAlgoView extends VerticalLayout implements BeforeEnterObserver
         // טעינה ראשונית של נתונים (אם כבר קיימים ב-DB)
         refreshGrid();
 
-        // שמירת מצב (State Management)
-        if (matchmakingService.getCurrentMen() != null && !matchmakingService.getCurrentMen().isEmpty()) {
+        // שמירת מצב (State Management) - כאשר המשתמש מרענן את העמוד
+        if (matchAlgoFacadeService.getCurrentMen() != null && !matchAlgoFacadeService.getCurrentMen().isEmpty()) {
+
             // אם לאחד מהם כבר יש שידוך, נציג מיד את הכרטיסיות
-            if (matchmakingService.getCurrentMen().get(0).getCurrentPartner() != null) {
+            if (matchAlgoFacadeService.getCurrentMen().get(0).getCurrentPartner() != null) {
+
+                finalAlgoMatches = matchAlgoFacadeService.findAllMatches();
+                currentManList = matchAlgoFacadeService.getCurrentMen();
+                currentWomanList = matchAlgoFacadeService.getCurrentWomen();
                 showAlgoResults();
+
                 userGrid.setVisible(false); // מעלים את טבלת הבסיס כדי לחסוך מקום
+
             }
+
         }
 
     }
@@ -204,8 +213,8 @@ public class MatchAlgoView extends VerticalLayout implements BeforeEnterObserver
 
             @Override
             public void run() {
-                galeShapleyService.runGaleShapley(matchmakingService.getCurrentMen(),
-                        matchmakingService.getCurrentWomen());
+
+                finalAlgoMatches = matchAlgoFacadeService.runFullMatchmaking();
             }
 
         }, new AsyncManagerService.TaskCallback() {
@@ -273,7 +282,7 @@ public class MatchAlgoView extends VerticalLayout implements BeforeEnterObserver
 
     // פעולת עזר לרענון הטבלה
     private void refreshGrid() {
-        userGrid.setItems(userRepository.findAll());
+        userGrid.setItems(matchAlgoFacadeService.findAll());
     }
 
     // פעולת עזר להצגת הודעות קופצות ירוקות
@@ -301,14 +310,14 @@ public class MatchAlgoView extends VerticalLayout implements BeforeEnterObserver
         // עמודת גברים
         VerticalLayout menColumn = new VerticalLayout();
         menColumn.add(new H3("רשימות העדפות - גברים 🤵"));
-        for (User man : matchmakingService.getCurrentMen()) {
+        for (User man : currentManList) {
             menColumn.add(showAndCreateUserDetails(man));
         }
 
         // עמודת נשים
         VerticalLayout womenColumn = new VerticalLayout();
         womenColumn.add(new H3("רשימות העדפות - נשים 👰"));
-        for (User woman : matchmakingService.getCurrentWomen()) {
+        for (User woman : currentWomanList) {
             womenColumn.add(showAndCreateUserDetails(woman));
         }
 
@@ -338,12 +347,19 @@ public class MatchAlgoView extends VerticalLayout implements BeforeEnterObserver
         cardsContainer.removeAll();
 
         // עוברים על כל הגברים ובודקים את הסטטוס שלהם
-        for (User man : matchmakingService.getCurrentMen()) {
+        for (User man : currentManList) {
             User partner = man.getCurrentPartner();
 
             if (partner != null) {
                 // יש שידוך! שולפים את הציון
-                double score = findScore(man, partner);
+                double score = 0;
+
+                for (Match match : finalAlgoMatches) {
+                    if (man.getId().equals(match.getManId())) {
+                        score = match.getMatchScore();
+                        break;
+                    }
+                }
 
                 // כאן ניצור את הכרטיסייה המעוצבת החדשה!
                 MatchCard card = new MatchCard(man.getFullName(), partner.getFullName(), score);
@@ -362,17 +378,7 @@ public class MatchAlgoView extends VerticalLayout implements BeforeEnterObserver
         }
     }
 
-    /** פונקציית עזר לשליפת ציון ההתאמה מתוך רשימת ההעדפות */
-    private double findScore(User man, User partner) {
-        if (man.getPreferencesScores() != null) {
-            for (ScorePair sp : man.getPreferencesScores()) {
-                if (sp.getCandidate().getId().equals(partner.getId())) {
-                    return sp.getScore();
-                }
-            }
-        }
-        return 0.0;
-    }
+
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {

@@ -219,7 +219,8 @@ public class User {
         this.email = email;
 
         this.registrationDate = LocalDateTime.now(); // שמירת זמן ההרשמה הנוכחי
-        role = ROLE.ADMIN;
+        this.role = role;
+        this.status = UserStatus.AVAILABLE;
     }
     // ==========================================
     // פעולות אלגוריתם (Algorithm Logic)

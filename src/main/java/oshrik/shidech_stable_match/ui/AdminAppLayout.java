@@ -25,7 +25,7 @@ public class AdminAppLayout extends AppLayout {
         
         Span brandName = new Span("You'r Next Shidech");
         brandName.addClassName("brand-name");
-        Span brandTagline = new Span("השידעך הבא שלך");
+        Span brandTagline = new Span(" שִׁידֶעךְ הבא שלך");
         brandTagline.addClassName("brand-tagline");
 
         HorizontalLayout brand = new HorizontalLayout(brandName, brandTagline);

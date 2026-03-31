@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Queue;
 
 @Service
-public class GaleShapleyService {
+public class GaleShapleyAlgoService {
 
     /**
      * אלגוריתם הליבה - גייל שייפלי

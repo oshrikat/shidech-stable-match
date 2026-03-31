@@ -35,8 +35,9 @@ public class AuthView extends HorizontalLayout
     {
         this.userService = userService;
 
+        getStyle().set("direction", "rtl");
         setSizeFull();
-        getStyle().setBackgroundColor("#6a7487");
+        getStyle().setBackgroundColor("#8492b0");
 
         // יצירת מופע של השומר מקום לטופס 
         authFormLayout = new VerticalLayout();
@@ -70,41 +71,57 @@ public class AuthView extends HorizontalLayout
         title.getStyle().set("color", "white");
 
         EmailField emailField = new EmailField("כתובת אימייל");
+        emailField.getStyle().set("color", "white");
         emailField.setWidth("80%");
+        emailField.setRequiredIndicatorVisible(true);
+        emailField.setErrorMessage("Please Fill the email !");
 
         PasswordField passwordField = new PasswordField("סיסמה");
+        passwordField.getStyle().set("color", "white");
         passwordField.setWidth("80%");
+        passwordField.setRequiredIndicatorVisible(true);
+        passwordField.setErrorMessage("Please Fill the password !");
 
         Button btn_Login_Submit = new Button("התחבר למערכת");
         btn_Login_Submit.setWidth("80%");
-        btn_Login_Submit.getStyle().set("background-color", "#7F77DD"); // צבע הכפתור המרכזי שלנו
+        btn_Login_Submit.getStyle().set("background-color", "#bababa"); // צבע הכפתור המרכזי שלנו
         btn_Login_Submit.getStyle().set("color", "white");
 
         btn_Login_Submit.addClickListener(e ->
         {
-            User loginUser = userService.loginUser(emailField.getValue(),passwordField.getValue());
+            if (!emailField.isEmpty() && !passwordField.isEmpty() && !emailField.isInvalid()) {
+                User loginUser = userService.loginUser(emailField.getValue(), passwordField.getValue());
 
-            if(loginUser != null)
-            {
-                Notification.show("User Seccecfully Logged In to System !",2000,Position.MIDDLE,true);
-                SessionHelper.setAttribute("currentUser", loginUser);
-                
-                if (loginUser.getRole().equals(ROLE.USER))
-                    RouteHelper.navigateTo(UserDashboardView.class);
-                else
-                    RouteHelper.navigateTo(AdminView.class);
+                if (loginUser != null) {
+                    Notification.show("User Seccecfully Logged In to System !", 2000, Position.MIDDLE, true);
+                    SessionHelper.setAttribute("currentUser", loginUser);
 
+                    if (loginUser.getRole().equals(ROLE.USER))
+                        RouteHelper.navigateTo(UserDashboardView.class);
+                    else
+                        RouteHelper.navigateTo(AdminView.class);
+
+                } else
+                    Notification.show("User Could'nt Log in to System ! Please Try Later...", 2000,
+                            Position.TOP_STRETCH, true);
             }
-            else    
-                Notification.show("User Could'nt Log in to System ! Please Try Later...",2000,Position.TOP_STRETCH,true);
-            
+            else {
+                // צביעת השדות הריקים באדום כדי שה-ErrorMessage יוצג
+                if (emailField.isEmpty())
+                    emailField.setInvalid(true);
+                if (passwordField.isEmpty())
+                    passwordField.setInvalid(true);
+
+                // Notification.show("Should fill all the details !!!!!!!!", 3000,
+                // Position.TOP_STRETCH);
+            }
         });
 
         
         // כפתור המעבר (Toggle) שמעוצב כמו קישור
         Button btn_toggleToRegister = new Button("עדיין אין לך חשבון? הירשם כאן");
         btn_toggleToRegister.getStyle().set("background-color", "transparent");
-        btn_toggleToRegister.getStyle().set("color", "#a0a0a0");
+        btn_toggleToRegister.getStyle().set("color", "rgb(21, 10, 30)");
         btn_toggleToRegister.getStyle().set("cursor", "pointer");
         btn_toggleToRegister.getStyle().set("margin-top", "20px");
 
@@ -142,41 +159,62 @@ public class AuthView extends HorizontalLayout
         title.getStyle().set("color", "white");
 
         TextField nameField = new TextField("שם פרטי");
+        nameField.getStyle().setColor("#cbbfbf");
         nameField.setWidth("80%");
+        nameField.setRequiredIndicatorVisible(true);
+        nameField.setErrorMessage("Please Fill the Name !");
 
         EmailField emailField = new EmailField("כתובת אימייל");
+        emailField.getStyle().set("color", "white");
         emailField.setWidth("80%");
+        emailField.setRequiredIndicatorVisible(true);
+        emailField.setErrorMessage("Please Fill the email !");
 
         PasswordField passwordField = new PasswordField("סיסמה");
+        passwordField.getStyle().set("color", "white");
         passwordField.setWidth("80%");
+        passwordField.setRequiredIndicatorVisible(true);
+        passwordField.setErrorMessage("Please Fill the Password !");
 
         Button btn_Register_Submit = new Button("הירשם והתחל");
         btn_Register_Submit.setWidth("80%");
-        btn_Register_Submit.getStyle().set("background-color", "#7F77DD"); // צבע הכפתור המרכזי שלנו
+        btn_Register_Submit.getStyle().set("background-color", "#bababa"); // צבע הכפתור המרכזי שלנו
         btn_Register_Submit.getStyle().set("color", "white");
 
         btn_Register_Submit.addClickListener(e ->
         {
-            User newUser = new User(nameField.getValue(), passwordField.getValue(), emailField.getValue());
-            
-            boolean seccessful = userService.registerNewUser(newUser);
-            if(seccessful)
-            {
-                Notification.show("User Seccecfully Registered to System !",5000,Position.MIDDLE,true);
-                SessionHelper.setAttribute("currentUser", newUser);
-            
-                RouteHelper.navigateTo(UserDashboardView.class); // לבינתיים - עד שניצור את השאלון
+            if (!nameField.isEmpty() && !passwordField.isEmpty() && !emailField.isEmpty() && !emailField.isInvalid()) {
+                User newUser = new User(nameField.getValue(), passwordField.getValue(), emailField.getValue());
+
+                boolean seccessful = userService.registerNewUser(newUser);
+                if (seccessful) {
+                    Notification.show("User Seccecfully Registered to System !", 5000, Position.MIDDLE, true);
+                    SessionHelper.setAttribute("currentUser", newUser);
+
+                    RouteHelper.navigateTo(UserDashboardView.class); // לבינתיים - עד שניצור את השאלון
+                } else
+                    Notification.show("User Could'nt Register to System ! Please Try Later...", 5000,
+                            Position.TOP_STRETCH, true);
             }
-            else    
-                Notification.show("User Could'nt Register to System ! Please Try Later...",5000,Position.TOP_STRETCH,true);
-            
+            else {
+                // צביעת השדות הריקים באדום כדי שה-ErrorMessage יוצג
+                if (nameField.isEmpty())
+                    nameField.setInvalid(true);
+                if (emailField.isEmpty() && emailField.isInvalid())
+                    emailField.setInvalid(true);
+                if (passwordField.isEmpty())
+                    passwordField.setInvalid(true);
+
+                // Notification.show("Should fill all the details !!!!!!!!", 3000,
+                // Position.TOP_STRETCH);
+            }
         });
 
 
         // כפתור המעבר (Toggle) שמעוצב כמו קישור
         Button btn_toggleToLogin = new Button("כבר יש לך חשבון? התחבר כאן");
         btn_toggleToLogin.getStyle().set("background-color", "transparent");
-        btn_toggleToLogin.getStyle().set("color", "#a0a0a0");
+        btn_toggleToLogin.getStyle().set("color", "#0a0707");
         btn_toggleToLogin.getStyle().set("cursor", "pointer");
         btn_toggleToLogin.getStyle().set("margin-top", "20px");
 
