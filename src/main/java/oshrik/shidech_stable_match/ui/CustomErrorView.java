@@ -3,7 +3,10 @@ package oshrik.shidech_stable_match.ui;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.H1;
+import com.vaadin.flow.component.html.H3;
+import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.ErrorParameter;
@@ -13,10 +16,9 @@ import com.vaadin.flow.router.ParentLayout;
 
 import oshrik.shidech_stable_match.utilities.RouteHelper;
 
-// שים לב: אין פה @Route! 
-@ParentLayout(UserAppLayout.class) // אופציונלי: משאיר את התפריט הראשי גם בדף השגיאה
 public class CustomErrorView extends VerticalLayout implements HasErrorParameter<Exception> {
 
+    private String errorAccur = "The Error : \n";
     public CustomErrorView() {
         setAlignItems(Alignment.CENTER);
         setJustifyContentMode(JustifyContentMode.CENTER);
@@ -24,6 +26,7 @@ public class CustomErrorView extends VerticalLayout implements HasErrorParameter
 
         H1 title = new H1("אופס! תקלה במערכת 🕵️‍♂️");
         Span description = new Span("תקלה במערכת ");
+        Paragraph explain = new Paragraph(errorAccur);
         
         Button homeButton = new Button("קח אותי הביתה");
         homeButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
@@ -31,12 +34,15 @@ public class CustomErrorView extends VerticalLayout implements HasErrorParameter
             RouteHelper.navigateTo("/");
     });
 
-        add(title, description, homeButton);
+        add(title, description, explain, homeButton);
     }
 
     @Override
     public int setErrorParameter(BeforeEnterEvent event, ErrorParameter<Exception> parameter) {
+        Notification.show(parameter.getCustomMessage());
+        System.out.println("I'm here... Error accured : \n " + parameter.getCustomMessage());
         // מחזיר את קוד השגיאה הרשמי של שרת (404 - Not Found)
+        errorAccur += parameter.getCustomMessage() + "\n\n" + parameter.getCaughtException();
         return 500; 
     }
 }

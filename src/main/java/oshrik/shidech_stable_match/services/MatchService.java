@@ -84,14 +84,28 @@ public class MatchService {
         // לשלוף את השידוך לפי ה matchId
         Match curMatch = matchRepository.findOneMatchById(matchId);
 
+        User man = userRepository.findById(curMatch.getManId()).orElse(null);
+        User woman = userRepository.findById(curMatch.getWomanId()).orElse(null);
+
         if (curMatch == null)
             return false;
 
         // לעדכן את השדה הנכון (manAgreed או womanAgreed) לפי ה-gender
         if(gender.equals(Gender.MALE))
+        {
             curMatch.setManAgreed(isAccepted);
+            if (isAccepted) {
+                man.setStatus(UserStatus.AGREEE_WATING);
+            }
+
+        }
         else
+        {
             curMatch.setWomanAgreed(isAccepted);
+            if (isAccepted) {
+                woman.setStatus(UserStatus.AGREEE_WATING);
+            }
+        }
          
         //  : לוגיקת שינוי סטטוס:
         //       - אם isAccepted הוא false -> הסטטוס הופך ל-REJECTED.
@@ -99,12 +113,18 @@ public class MatchService {
         {
             curMatch.setStatus(MatchStatus.REJECTED);
 
-               // נשנה להם סטטוס של פנויים
-            User man = userRepository.findById(curMatch.getManId()).orElse(null);
-            if(man != null) man.setStatus(UserStatus.AVAILABLE);
-            
-            User woman = userRepository.findById(curMatch.getWomanId()).orElse(null);
-            if(woman != null) woman.setStatus(UserStatus.AVAILABLE);
+            // נשנה להם סטטוס של פנויים
+            if (man != null) {
+                man.setStatus(UserStatus.AVAILABLE);
+                man.setCurrentPartner(null);
+
+            }
+
+            if (woman != null) {
+                woman.setStatus(UserStatus.AVAILABLE);
+                woman.setCurrentPartner(null);
+
+            }
 
             userRepository.save(man);
             userRepository.save(woman);
@@ -119,11 +139,15 @@ public class MatchService {
             curMatch.setStatus(MatchStatus.ACTIVE_DATING);
             
             // נשנה להם סטטוס של תפוסים
-            User man = userRepository.findById(curMatch.getManId()).orElse(null);
-            if(man != null) man.setStatus(UserStatus.IN_RELATIONSHIP);
-            
-            User woman = userRepository.findById(curMatch.getWomanId()).orElse(null);
-            if(woman != null) woman.setStatus(UserStatus.IN_RELATIONSHIP);
+            if (man != null) {
+                man.setStatus(UserStatus.IN_RELATIONSHIP);
+                man.setCurrentPartner(woman);
+            }
+
+            if (woman != null) {
+                woman.setStatus(UserStatus.IN_RELATIONSHIP);
+                woman.setCurrentPartner(man);
+            }
 
             userRepository.save(man);
             userRepository.save(woman);

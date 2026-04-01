@@ -15,6 +15,7 @@ import com.vaadin.flow.router.Route;
 
 import oshrik.shidech_stable_match.datamodels.Match;
 import oshrik.shidech_stable_match.datamodels.User;
+import oshrik.shidech_stable_match.datamodels.Match.MatchStatus;
 import oshrik.shidech_stable_match.datamodels.User.Gender;
 import oshrik.shidech_stable_match.datamodels.User.ROLE;
 import oshrik.shidech_stable_match.services.MatchService;
@@ -47,19 +48,19 @@ public class MyMatchView extends VerticalLayout implements BeforeEnterObserver {
 
     }
 
-    // בניית הממשק הגרפי בצורה מסודרת
-    private void buildUI() {
+    // המשתמשים צריכים לקבל החלטה שמא מעוניינים בשידוך המוצע או שלא מעוניינים
+    private void buildUI1() {
         removeAll(); // ניקוי למקרה של רענון
 
         H1 title = new H1("מזל טוב! נמצאה עבורך הצעה 💍");
-        
+
         // שליפת בן הזוג מתוך אובייקט המאץ'
-        User partner = (curUserOnline.getGender().equals(Gender.MALE)) ? 
-                        getWoman(currMatch.getWomanId()) :  getMan(currMatch.getManId());
+        User partner = (curUserOnline.getGender().equals(Gender.MALE)) ? getWoman(currMatch.getWomanId())
+                : getMan(currMatch.getManId());
 
         H2 nameHeading = new H2(partner.getFullName());
         Span details = new Span("גיל: " + partner.getAge() + " | עיסוק: " + partner.getOccupation());
-        
+
         // כפתורי החלטה
         Button btnAccept = new Button("אני מעוניין/ת להמשיך", e -> handleResponse(true));
         btnAccept.addThemeVariants(ButtonVariant.LUMO_SUCCESS, ButtonVariant.LUMO_PRIMARY);
@@ -68,7 +69,28 @@ public class MyMatchView extends VerticalLayout implements BeforeEnterObserver {
         btnDecline.addThemeVariants(ButtonVariant.LUMO_ERROR);
 
         HorizontalLayout actions = new HorizontalLayout(btnAccept, btnDecline);
-        
+
+        add(title, nameHeading, details, actions);
+    }
+
+    // מסך זה ייבנה במצב בו שני המשתמשים מעוניינים להכיר ! לכן
+    private void buildUI2() {
+        removeAll(); // ניקוי למקרה של רענון
+
+        H1 title = new H1("מזל טוב , שניכם  מעוניינים להכיר ! בואו נתחיל");
+
+        // שליפת בן הזוג מתוך אובייקט המאץ'
+        User partner = (curUserOnline.getGender().equals(Gender.MALE)) ? getWoman(currMatch.getWomanId())
+                : getMan(currMatch.getManId());
+
+        H2 nameHeading = new H2(partner.getFullName());
+        Span details = new Span("גיל: " + partner.getAge() + " | עיסוק: " + partner.getOccupation());
+
+        Button btnContinue = new Button("נתחיל להכיר    ", e -> handleResponse(false));
+        btnContinue.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+
+        HorizontalLayout actions = new HorizontalLayout(btnContinue);
+
         add(title, nameHeading, details, actions);
     }
 
@@ -109,7 +131,8 @@ public class MyMatchView extends VerticalLayout implements BeforeEnterObserver {
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
         curUserOnline = (User) SessionHelper.getAttribute("currentUser");
-        
+        User user_Partner;
+
         if (curUserOnline == null) {
             event.forwardTo(AuthView.class);
             return;
@@ -122,11 +145,23 @@ public class MyMatchView extends VerticalLayout implements BeforeEnterObserver {
 
         // בדיקה האם קיים שידוך פעיל
         currMatch = matchService.getCurrentActiveOrPendingMatch(curUserOnline.getId(), curUserOnline.getGender());
+        // נשיג את הזוג
+
+        if (curUserOnline.getGender().equals(Gender.MALE))
+            user_Partner = userService.findUserById(currMatch.getWomanId());
+        else
+            user_Partner = userService.findUserById(currMatch.getManId());
+
         System.out.println("Match status: " + currMatch);
+
         if (currMatch == null) {
             event.forwardTo(UserDashboardView.class);
         } else {
-            buildUI(); // רק אם הכל תקין, בונים את התצוגה
+            // רק אם הכל תקין, בונים את התצוגה של השידוך הנוכחי - לפי מצבו
+            if (!currMatch.getStatus().equals(MatchStatus.ACTIVE_DATING))
+                buildUI1();
+            else
+                buildUI2();
         }
     }
 }

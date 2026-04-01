@@ -6,10 +6,12 @@ import java.time.Period;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
+import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.H4;
 import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.progressbar.ProgressBar;
@@ -17,19 +19,30 @@ import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.Route;
 
+import oshrik.shidech_stable_match.datamodels.Match;
 import oshrik.shidech_stable_match.datamodels.MatchScore;
 import oshrik.shidech_stable_match.datamodels.User;
+import oshrik.shidech_stable_match.datamodels.User.Gender;
+import oshrik.shidech_stable_match.datamodels.User.UserStatus;
 import oshrik.shidech_stable_match.services.MatchScoreService;
+import oshrik.shidech_stable_match.services.MatchService;
+import oshrik.shidech_stable_match.services.UserDashboardFacadeService;
+import oshrik.shidech_stable_match.services.UserService;
+import oshrik.shidech_stable_match.utilities.RouteHelper;
 import oshrik.shidech_stable_match.utilities.SessionHelper;
 
 @Route(value = "/userDashboard", layout = UserAppLayout.class)
 public class UserDashboardView extends VerticalLayout implements BeforeEnterObserver {
 
-    private User currUser;
-    private final MatchScoreService matchScoreService;
+    // Services
+    UserDashboardFacadeService userDashboardFacadeService;
 
-    public UserDashboardView(MatchScoreService matchScoreService) {
-        this.matchScoreService = matchScoreService;
+    // Data models
+    private Match currMatch;
+    private User currUser;
+
+    public UserDashboardView(UserDashboardFacadeService userDashboardFacadeService) {
+        this.userDashboardFacadeService = userDashboardFacadeService;
 
         setSizeFull();
         setAlignItems(Alignment.CENTER);
@@ -61,13 +74,27 @@ public class UserDashboardView extends VerticalLayout implements BeforeEnterObse
         greeting.getStyle().set("margin", "0");
 
         Span activeBadge = new Span("🟢 פרופיל פעיל");
+
         activeBadge.getStyle().set("background-color", "#e6f4ea");
         activeBadge.getStyle().set("color", "#1e8e3e");
         activeBadge.getStyle().set("padding", "5px 15px");
         activeBadge.getStyle().set("border-radius", "20px");
         activeBadge.getStyle().set("font-weight", "bold");
 
-        header.add(greeting, activeBadge);
+        Button btnTestEmail = new Button("שלח מייל פיילוט לאימייל שלך ✉️", e -> {
+            try {
+                // הכנס כאן את המייל האישי האמיתי שלך כדי שתראה את ההודעה מגיעה
+                userDashboardFacadeService.sendTestEmail(
+                        currUser.getEmail(),
+                        "עדכון - יש לך התאמה חדשה עם...",
+                        "שלום , (משתמש) . אנו שמחים להודיעך כי נמצאה לך התאמה ! עם ___ \n אנא כנס לאתר על מנת להיכנס לתהליך. \n תודה רבה , צוות שִׁידֶעךְ");
+                Notification.show("האימייל נשלח! ");
+            } catch (Exception ex) {
+                Notification.show("שגיאה בשליחה: " + ex.getMessage());
+            }
+        });
+
+        header.add(greeting, activeBadge, btnTestEmail);
         return header;
     }
 
@@ -82,18 +109,75 @@ public class UserDashboardView extends VerticalLayout implements BeforeEnterObse
         statusCard.getStyle().set("padding", "30px");
         statusCard.getStyle().set("margin-top", "20px");
 
-        if (currUser.getCurrentPartner() == null) {
+        // בדיקה האם קיים שידוך פעיל
+        currMatch = userDashboardFacadeService.getCurrentActiveOrPendingMatch(currUser.getId(), currUser.getGender());
+        if (currMatch != null) {
+
+            // נשיג את הזוג
+            User partner;
+            if (currUser.getGender().equals(Gender.MALE))
+                partner = userDashboardFacadeService.findUserById(currMatch.getWomanId());
+            else
+                partner = userDashboardFacadeService.findUserById(currMatch.getManId());
+
+            // רכיבים זמניים :
+            H3 statusTitle;
+            Span statusSub;
+            Button btn_move_to_my_shidech = new Button("היכנס לשידוך ותחליט ");
+
+            if (!currUser.getStatus().equals(UserStatus.IN_RELATIONSHIP)) {
+
+                // כללי
+                statusTitle = new H3("יש לך התאמה! 🎉");
+                statusTitle.getStyle().set("color", "#d93871");
+
+                // אם זה הגבר בתצוגה נציג לו את השידוך שלו בהתאמה וכן ההיפך
+                if (currUser.getGender().equals(Gender.MALE))
+                    statusSub = new Span("הכר את " + partner.getFullName() + " (גיל: " +
+                            partner.getAge() + "). איזה יופי!");
+                else
+                    statusSub = new Span(
+                            "הכר את " + currUser.getFullName() + " (גיל: " + currUser.getAge() + "). איזה יופי!");
+
+            }
+
+            else {
+                statusTitle = new H3(" מזל טוב ! שניכם מעוניינים אחד בשני !!! תרצו לבדוק ולהחליט סופית ?");
+                statusTitle.getStyle().set("color", "#d93871");
+
+                if (currUser.getGender().equals(Gender.MALE))
+                    statusSub = new Span(
+                            "בוא נכיר סופית ונחליט לגבי השידוך עם :  " + partner.getFullName() + " (גיל: " +
+                                    partner.getAge() + "). איזה יופי!");
+                else
+                    statusSub = new Span(
+                            "בוא נכיר סופית ונחליט לגבי השידוך עם :  " + currUser.getFullName() + " (גיל: " +
+                                    currUser.getAge() + "). איזה יופי!");
+
+                btn_move_to_my_shidech.setText("האם תרצו לבדוק את ההתאמה ? ");
+            }
+
+            // טיפול באירוע לחיצה על הכפתור :
+            btn_move_to_my_shidech.addClickListener(e -> {
+
+                RouteHelper.navigateTo(MyMatchView.class);
+            });
+            statusCard.add(statusTitle, statusSub, btn_move_to_my_shidech);
+
+        } else {
             H3 statusTitle = new H3("⏳ ממתין להתאמה...");
             Span statusSub = new Span("האלגוריתם שלנו פעיל וסורק את המערכת. ההתאמה המושלמת תגיע בקרוב.");
             statusSub.getStyle().set("color", "gray");
             statusCard.add(statusTitle, statusSub);
-        } else {
-            User match = currUser.getCurrentPartner();
-            H3 statusTitle = new H3("יש לך התאמה! 🎉");
-            statusTitle.getStyle().set("color", "#d93871");
-            Span statusSub = new Span("הכר את " + match.getFullName() + " (גיל: " + match.getAge() + "). איזה יופי!");
-            statusCard.add(statusTitle, statusSub);
+
         }
+        /*
+         * if (currUser.getCurrentPartner() == null) {
+         *
+         * } else {
+         * 
+         * }
+         */
 
         return statusCard;
     }
@@ -106,33 +190,14 @@ public class UserDashboardView extends VerticalLayout implements BeforeEnterObse
         statsLayout.getStyle().set("margin-top", "20px");
 
         statsLayout.add(
-                createStatBox("ימים במערכת", calculateDaysInSystem()), // קורא לפונקציה הדינמית
-                createStatBox("התאמות שהתקבלו", getCountFirstMatches()), // בינתיים התאמות ראשוניות
-                createStatBox("ציון התאמה מקסימלי", getBestScoreExists())
+                createStatBox("ימים במערכת", userDashboardFacadeService.calculateDaysInSystem(currUser)),
+                createStatBox("התאמות שהתקבלו", userDashboardFacadeService.getCountFirstMatches(currUser)),
+                createStatBox("ציון התאמה מקסימלי", userDashboardFacadeService.getBestScore(currUser))
         );
 
         return statsLayout;
     }
 
-    private String getCountFirstMatches() {
-        return String.valueOf(currUser.getPreferencesScores().size());
-    }
-
-    private String calculateDaysInSystem() {
-
-        return String.valueOf(Period.between(currUser.getRegistrationDate().toLocalDate(), LocalDate.now()).getDays());
-
-        /*
-         * if (currUser == null || currUser.getRegistrationDate() == null) {
-         * return "1";
-         * }
-         * 
-         * LocalDate regDate = currUser.getRegistrationDate().toLocalDate();
-         * long days = ChronoUnit.DAYS.between(regDate, LocalDate.now());
-         * 
-         * return String.valueOf(Math.max(1, days + 1));
-         */
-    }
 
 
     private VerticalLayout createStatBox(String title, String value) {
@@ -222,20 +287,6 @@ public class UserDashboardView extends VerticalLayout implements BeforeEnterObse
         return historyCard;
     }
 
-    private String getBestScoreExists() {
-        String maxScoreText = "?";
-        if (currUser != null && currUser.getId() != null) {
-            List<MatchScore> scores = (currUser.getGender() == User.Gender.MALE)
-                    ? matchScoreService.getRankedWomenForMan(currUser.getId())
-                    : matchScoreService.getRankedMenForWoman(currUser.getId());
-
-            if (scores != null && !scores.isEmpty()) {
-                double max = scores.get(0).getTotalScore();
-                maxScoreText = String.format("%.1f%%", max);
-            }
-        }
-        return maxScoreText;
-    }
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
