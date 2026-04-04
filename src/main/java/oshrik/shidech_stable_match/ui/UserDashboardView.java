@@ -28,6 +28,7 @@ import oshrik.shidech_stable_match.services.MatchScoreService;
 import oshrik.shidech_stable_match.services.MatchService;
 import oshrik.shidech_stable_match.services.UserDashboardFacadeService;
 import oshrik.shidech_stable_match.services.UserService;
+import oshrik.shidech_stable_match.ui.components.StatusCardData;
 import oshrik.shidech_stable_match.utilities.RouteHelper;
 import oshrik.shidech_stable_match.utilities.SessionHelper;
 
@@ -99,7 +100,14 @@ public class UserDashboardView extends VerticalLayout implements BeforeEnterObse
     }
 
     // --- חלק 2: אזור סטטוס מרכזי (הלוגיקה!) ---
+    /**
+     * בונה ומחזיר את רכיב התצוגה של אזור הסטטוס המרכזי.
+     * שואב את הנתונים משירות ה-Facade ומייצר את רכיבי ה-UI בהתאם
+     *
+     * @return VerticalLayout קונטיינר (מכל) המכיל את כל רכיבי הסטטוס המעוצבים.
+     */
     private VerticalLayout create_Part2_StatusZone() {
+
         VerticalLayout statusCard = new VerticalLayout();
         statusCard.setWidth("80%");
         statusCard.setAlignItems(Alignment.CENTER);
@@ -109,75 +117,21 @@ public class UserDashboardView extends VerticalLayout implements BeforeEnterObse
         statusCard.getStyle().set("padding", "30px");
         statusCard.getStyle().set("margin-top", "20px");
 
-        // בדיקה האם קיים שידוך פעיל
-        currMatch = userDashboardFacadeService.getCurrentActiveOrPendingMatch(currUser.getId(), currUser.getGender());
-        if (currMatch != null) {
+        // שליפת אובייקט הנתונים מהקבלן
+        StatusCardData statusData = userDashboardFacadeService.getStatusCardToShow(currUser);
 
-            // נשיג את הזוג
-            User partner;
-            if (currUser.getGender().equals(Gender.MALE))
-                partner = userDashboardFacadeService.findUserById(currMatch.getWomanId());
-            else
-                partner = userDashboardFacadeService.findUserById(currMatch.getManId());
+        H3 statusTitle = new H3(statusData.getTitle());
+        statusTitle.getStyle().set("color", "#d93871");
+        Span statusSub = new Span(statusData.getSubtitle());
 
-            // רכיבים זמניים :
-            H3 statusTitle;
-            Span statusSub;
-            Button btn_move_to_my_shidech = new Button("היכנס לשידוך ותחליט ");
+        statusCard.add(statusTitle, statusSub);
 
-            if (!currUser.getStatus().equals(UserStatus.IN_RELATIONSHIP)) {
-
-                // כללי
-                statusTitle = new H3("יש לך התאמה! 🎉");
-                statusTitle.getStyle().set("color", "#d93871");
-
-                // אם זה הגבר בתצוגה נציג לו את השידוך שלו בהתאמה וכן ההיפך
-                if (currUser.getGender().equals(Gender.MALE))
-                    statusSub = new Span("הכר את " + partner.getFullName() + " (גיל: " +
-                            partner.getAge() + "). איזה יופי!");
-                else
-                    statusSub = new Span(
-                            "הכר את " + currUser.getFullName() + " (גיל: " + currUser.getAge() + "). איזה יופי!");
-
-            }
-
-            else {
-                statusTitle = new H3(" מזל טוב ! שניכם מעוניינים אחד בשני !!! תרצו לבדוק ולהחליט סופית ?");
-                statusTitle.getStyle().set("color", "#d93871");
-
-                if (currUser.getGender().equals(Gender.MALE))
-                    statusSub = new Span(
-                            "בוא נכיר סופית ונחליט לגבי השידוך עם :  " + partner.getFullName() + " (גיל: " +
-                                    partner.getAge() + "). איזה יופי!");
-                else
-                    statusSub = new Span(
-                            "בוא נכיר סופית ונחליט לגבי השידוך עם :  " + currUser.getFullName() + " (גיל: " +
-                                    currUser.getAge() + "). איזה יופי!");
-
-                btn_move_to_my_shidech.setText("האם תרצו לבדוק את ההתאמה ? ");
-            }
-
-            // טיפול באירוע לחיצה על הכפתור :
-            btn_move_to_my_shidech.addClickListener(e -> {
-
-                RouteHelper.navigateTo(MyMatchView.class);
-            });
-            statusCard.add(statusTitle, statusSub, btn_move_to_my_shidech);
-
-        } else {
-            H3 statusTitle = new H3("⏳ ממתין להתאמה...");
-            Span statusSub = new Span("האלגוריתם שלנו פעיל וסורק את המערכת. ההתאמה המושלמת תגיע בקרוב.");
-            statusSub.getStyle().set("color", "gray");
-            statusCard.add(statusTitle, statusSub);
-
+        // הוספת הכפתור רק אם יש לו טקסט
+        if (statusData.getButtonText() != null) {
+            Button btnAction = new Button(statusData.getButtonText());
+            btnAction.addClickListener(e -> RouteHelper.navigateTo(MyMatchView.class));
+            statusCard.add(btnAction);
         }
-        /*
-         * if (currUser.getCurrentPartner() == null) {
-         *
-         * } else {
-         * 
-         * }
-         */
 
         return statusCard;
     }

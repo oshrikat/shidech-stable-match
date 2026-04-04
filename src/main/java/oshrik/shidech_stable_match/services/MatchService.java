@@ -84,11 +84,13 @@ public class MatchService {
         // לשלוף את השידוך לפי ה matchId
         Match curMatch = matchRepository.findOneMatchById(matchId);
 
+        if (curMatch == null)
+            return false;
+
         User man = userRepository.findById(curMatch.getManId()).orElse(null);
         User woman = userRepository.findById(curMatch.getWomanId()).orElse(null);
 
-        if (curMatch == null)
-            return false;
+
 
         // לעדכן את השדה הנכון (manAgreed או womanAgreed) לפי ה-gender
         if(gender.equals(Gender.MALE))
@@ -136,7 +138,7 @@ public class MatchService {
 
        // - אם שניהם (manAgreed ו-womanAgreed) הם true -> הסטטוס הופך ל-ACTIVE_DATING.
         if (Boolean.TRUE.equals(curMatch.getManAgreed()) && Boolean.TRUE.equals(curMatch.getWomanAgreed())) {
-            curMatch.setStatus(MatchStatus.ACTIVE_DATING);
+            curMatch.setStatus(MatchStatus.PRE_DATING_EVALUATION);
             
             // נשנה להם סטטוס של תפוסים
             if (man != null) {
