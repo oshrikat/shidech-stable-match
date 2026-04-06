@@ -120,56 +120,57 @@ public class UserDashboardFacadeService {
              partner = findUserById(currMatch.getManId());
          }
 
-         // 3. הגדרת הטקסטים לפי הסטטוס
-         if (!currUser.getStatus().equals(UserStatus.IN_RELATIONSHIP)) {
-             // התאמה חדשה (אחד הצדדים או שניהם עדיין לא אישרו סופית)
-             String message = String.format("הכר את %s (גיל: %d). איזה יופי!", partner.getFullName(), partner.getAge());
+         // 3. *הגדרת הטקסטים לפי הסטטוס של ה*שידוך
+         MatchStatus matchStatus = currMatch.getStatus();
 
-             return new StatusCardData(
-                     "יש לך התאמה! 🎉",
-                     message,
-                     "כנס והחלט כאן !");
+         // שלב א': ממתינים לתשובות מהצדדים
+         if (matchStatus.equals(MatchStatus.PENDING_RESPONSES)) {
 
+             // אם המשתמש שלנו כבר לחץ "אני מעוניין" והוא ממתין לצד השני
+             if (currUser.getStatus().equals(UserStatus.AGREEE_WATING)) {
+                 return new StatusCardData(
+                         "הסכמת להצעה! 👍",
+                         "אנו ממתינים כעת להחלטה של " + partner.getFirstName() + "...",
+                         "צפה בסטטוס ההצעה");
+             }
+
+             // אם המשתמש שלנו עדיין לא קיבל החלטה
+             else {
+                 String message = String.format("הכר את %s (גיל: %d). איזה יופי!", partner.getFullName(),
+                         partner.getAge());
+                 return new StatusCardData(
+                         "יש לך התאמה! 🎉",
+                         message,
+                         "כנס והחלט כאן !");
+             }
          }
 
-         /**
-          * // שניהם מעוניינים
-          */
+         // שלב ב': שניהם מעוניינים - נכנסים לצ'אט!
+         else if (matchStatus.equals(MatchStatus.PRE_DATING_EVALUATION)) {
+             String message = String.format("בוא נכיר סופית ונחליט לגבי השידוך עם: %s (גיל: %d).",
+                     partner.getFullName(), partner.getAge());
+             return new StatusCardData(
+                     "מזל טוב! שניכם מעוניינים אחד בשני!",
+                     message,
+                     "צ'אט עם " + partner.getFirstName());
+         }
+
+         // שלב ג': החליפו פרטים ויוצאים בעולם האמיתי
+         else if (matchStatus.equals(MatchStatus.ACTIVE_DATING)) {
+             String message = ("מה קורה ? יש עדכון ?");
+             return new StatusCardData(
+                     "תעדכנו אותנו בבקשה מה מצבכם !",
+                     message,
+                     "עדכון סטטוס ");
+         }
+
+         // מצב חירום (Fallback)
          else {
-
-             StatusCardData statusCard = null;
-
-             if (currMatch.getStatus().equals(MatchStatus.PRE_DATING_EVALUATION)) {
-                 // הם רק הסכימו , לכן צריכים להיכנס לצ'אט - לפני החלפת פרטי קשר סופי
-                 String message = String.format("בוא נכיר סופית ונחליט לגבי השידוך עם: %s (גיל: %d).",
-                         partner.getFullName(), partner.getAge());
-                 statusCard = new StatusCardData(
-                         "מזל טוב! שניכם מעוניינים אחד בשני!",
-                         message,
-                         "צ'אט עם " + partner.getFirstName());
-             }
-
-             // הם אחרי הצ'אט - החליפו כבר פרטים
-             else if (currMatch.getStatus().equals(MatchStatus.ACTIVE_DATING)) {
-                 // הם רק הסכימו , לכן צריכים להיכנס לצ'אט - לפני החלפת פרטי קשר סופי
-                 String message = ("מה קורה ? יש עדכון ?");
-
-                 statusCard = new StatusCardData(
-                         "תעדכנו אותנו בבקשה מה מצבכם !",
-                         message,
-                         "עדכון סטטוס ");
-             }
-
-             else {
-                 String message = ("מצב לא ידוע... תקלה");
-
-                 statusCard = new StatusCardData(
-                         "מצב תקלה. הם יוצאים אבל מצב לא מזוהה",
-                         message,
-                         null);
-             }
-
-             return statusCard;
+             String message = ("מצב לא ידוע... תקלה");
+             return new StatusCardData(
+                     "מצב תקלה. הם יוצאים אבל מצב לא מזוהה",
+                     message,
+                     null);
          }
 
      }

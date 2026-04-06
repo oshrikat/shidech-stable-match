@@ -3,7 +3,6 @@ package oshrik.shidech_stable_match.services;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 import oshrik.shidech_stable_match.datamodels.Match;
@@ -18,18 +17,20 @@ import oshrik.shidech_stable_match.utilities.ScorePair;
 @Service
 public class MatchService {
 
+    // Services
     private final GaleShapleyAlgoService galeShapleyService;
-    private final UserService userService;
     private final UserRepository userRepository;
     private final MatchRepository matchRepository;
-    // בהמשך נוסיף לכאן גם את שירות האימיילים: private final EmailService emailService;
+    private final EmailService emailService;
+    private final UserService userService;
 
-    public MatchService(MatchRepository matchRepository, UserRepository userRepository, UserService userService,
-            GaleShapleyAlgoService galeShapleyService) {
+    public MatchService(MatchRepository matchRepository, UserRepository userRepository,
+            GaleShapleyAlgoService galeShapleyService, EmailService emailService, UserService userService) {
         this.matchRepository = matchRepository;
         this.userRepository = userRepository;
-        this.userService = userService;
         this.galeShapleyService = galeShapleyService;
+        this.emailService = emailService;
+        this.userService = userService;
     }
 
     /**
@@ -52,6 +53,14 @@ public class MatchService {
     private void sendEmailToCouple(Match match) {
          
         // Calling EmailService & Sending Each One an Email With the details...
+        User man, woman;
+        man = userService.findUserById(match.getManId());
+        woman = userService.findUserById(match.getWomanId());
+
+        emailService.sendSimpleEmail(man.getEmail(), "בדיקה , 1 , 2 ?? נוצר לך שידוך ! מזל טוב ",
+                "שלום רב " + man.getFullName()
+                        + " שמחים להודיעך כי נמצא לך שידוך עם : (קודם כל שישלח !!!!)  אבל בגדול השידוך עם : "
+                        + woman.getFullName() + "מעוניין בה ???");
 
     }
 
@@ -66,7 +75,8 @@ public class MatchService {
     public Match getCurrentActiveOrPendingMatch(String userId, User.Gender gender) {
         
         // מגדירים את הסטטוסים שאנחנו מחפשים (ממתין לתשובה או כבר בדייטים)
-        List<MatchStatus> activeStatuses = Arrays.asList(MatchStatus.PENDING_RESPONSES, MatchStatus.ACTIVE_DATING);
+        List<MatchStatus> activeStatuses = Arrays.asList(MatchStatus.PENDING_RESPONSES, MatchStatus.ACTIVE_DATING,
+                MatchStatus.PRE_DATING_EVALUATION);
 
         // שולפים ישירות ממסד הנתונים בהתאם למגדר
         if (gender.equals(Gender.MALE)) {
@@ -76,7 +86,7 @@ public class MatchService {
         }
     }
     
-     /**
+    /**
      * 3. עדכון החלטה (אישור/דחייה מהמסך הייעודי)
      */
     public boolean updateMatchResponse(String matchId, String respondingUserId, boolean isAccepted, User.Gender gender) {
@@ -90,8 +100,6 @@ public class MatchService {
         User man = userRepository.findById(curMatch.getManId()).orElse(null);
         User woman = userRepository.findById(curMatch.getWomanId()).orElse(null);
 
-
-
         // לעדכן את השדה הנכון (manAgreed או womanAgreed) לפי ה-gender
         if(gender.equals(Gender.MALE))
         {
@@ -99,7 +107,6 @@ public class MatchService {
             if (isAccepted) {
                 man.setStatus(UserStatus.AGREEE_WATING);
             }
-
         }
         else
         {
@@ -119,13 +126,11 @@ public class MatchService {
             if (man != null) {
                 man.setStatus(UserStatus.AVAILABLE);
                 man.setCurrentPartner(null);
-
             }
 
             if (woman != null) {
                 woman.setStatus(UserStatus.AVAILABLE);
                 woman.setCurrentPartner(null);
-
             }
 
             userRepository.save(man);
@@ -138,6 +143,7 @@ public class MatchService {
 
        // - אם שניהם (manAgreed ו-womanAgreed) הם true -> הסטטוס הופך ל-ACTIVE_DATING.
         if (Boolean.TRUE.equals(curMatch.getManAgreed()) && Boolean.TRUE.equals(curMatch.getWomanAgreed())) {
+
             curMatch.setStatus(MatchStatus.PRE_DATING_EVALUATION);
             
             // נשנה להם סטטוס של תפוסים
@@ -151,21 +157,21 @@ public class MatchService {
                 woman.setCurrentPartner(man);
             }
 
-            userRepository.save(man);
-            userRepository.save(woman);
-
-            // לשמור את השידוך המעודכן בחזרה למונגו.
-            matchRepository.save(curMatch);
-            return true;
+            // <-- מחקנו מפה את השמירות הכפולות! הקוד פשוט ממשיך למטה.
         }
             
-        
-        //  : לשמור את השידוך המעודכן בחזרה למונגו.
+        // --- התחנה הסופית: שומרים הכל ---
+        // הקוד תמיד יגיע לפה וישמור הכל, גם אם רק אחד הסכים וגם אם שניהם!
         matchRepository.save(curMatch);
+        if (man != null)
+            userRepository.save(man);
+        if (woman != null)
+            userRepository.save(woman);
 
-        return false;
+        // במקום להחזיר false קבוע בסוף, נחזיר תשובה חכמה:
+        // אמת - אם הם הגיעו לשלב הצ'אט, שקר - אם אנחנו עדיין בהמתנה.
+        return curMatch.getStatus().equals(MatchStatus.PRE_DATING_EVALUATION);
     }
-
     // תהליך מרכזי - אלגוריתם גייל שייפלי
 
     public List<Match> runAlgo_performFullMatchmaking(List<User> mens, List<User> womens) {
@@ -197,8 +203,16 @@ public class MatchService {
         userRepository.saveAll(womens);
 
         System.out.println("Saved " + matchesToSave.size() + " new matches to DB.");
-
+        sendEmailsToEachNewMatchCreated(matchesToSave);
         return matchesToSave;
+    }
+
+    private void sendEmailsToEachNewMatchCreated(List<Match> matchesToSave) {
+        for (Match match : matchesToSave) {
+            System.out.println("Sending Email : ");
+            sendEmailToCouple(match);
+            System.out.println("Email Send !!! To Couple - FROM  -> MATCH SERVICE <- ");
+        }
     }
 
     /** פונקציית עזר לשליפת ציון ההתאמה מתוך רשימת ההעדפות */
@@ -215,6 +229,11 @@ public class MatchService {
 
     public List<Match> findAllMatches() {
         return matchRepository.findAll();
+    }
+
+    // מחיקת כל השידוכים
+    public void deleteAll() {
+        matchRepository.deleteAll();
     }
 
 }

@@ -7,6 +7,8 @@ import com.vaadin.flow.component.page.AppShellConfigurator;
 import com.vaadin.flow.component.page.Push;
 
 @Push
+// @Favicon("favicon.png")
+
 @SpringBootApplication
 public class AppMain implements AppShellConfigurator 
 {
@@ -15,8 +17,9 @@ public class AppMain implements AppShellConfigurator
 	{
 		SpringApplication.run(AppMain.class, args);
 
-		System.out.println("=>>>> App Running...");
+		System.out.println("=>>>> App Start Running...");
 
 	}
+
 
 }

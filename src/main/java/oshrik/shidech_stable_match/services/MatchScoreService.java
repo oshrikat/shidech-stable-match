@@ -54,4 +54,5 @@ public class MatchScoreService {
     public List<MatchScore> getRankedMenForWoman(String womanId) {
         return repo_score_match.findByWomanIdOrderByTotalScoreDesc(womanId);
     }
+
 }

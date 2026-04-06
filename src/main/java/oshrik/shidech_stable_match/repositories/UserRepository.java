@@ -3,6 +3,8 @@ package oshrik.shidech_stable_match.repositories;
 import java.util.List;
 
 import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.mongodb.repository.Query;
+import org.springframework.data.mongodb.repository.Update;
 import org.springframework.stereotype.Repository;
 
 import oshrik.shidech_stable_match.datamodels.User;
@@ -76,5 +78,9 @@ public interface UserRepository extends MongoRepository<User, String> {
 
     // מחיקת כל ההמשתשים שהם לא מנהלים - כלומר , משתמשים רגילים
     public void deleteByRole(ROLE role);
+
+    @Query("{ 'role' : 'USER' }")
+    @Update("{ '$set' : { 'status' :'AVAILABLE','currentPartner' : null } }")
+    void resetAllRegularUsers();
 
 }

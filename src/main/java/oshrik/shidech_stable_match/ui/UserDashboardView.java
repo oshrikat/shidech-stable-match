@@ -41,6 +41,7 @@ public class UserDashboardView extends VerticalLayout implements BeforeEnterObse
     // Data models
     private Match currMatch;
     private User currUser;
+    private User currPartner;
 
     public UserDashboardView(UserDashboardFacadeService userDashboardFacadeService) {
         this.userDashboardFacadeService = userDashboardFacadeService;
@@ -82,20 +83,8 @@ public class UserDashboardView extends VerticalLayout implements BeforeEnterObse
         activeBadge.getStyle().set("border-radius", "20px");
         activeBadge.getStyle().set("font-weight", "bold");
 
-        Button btnTestEmail = new Button("שלח מייל פיילוט לאימייל שלך ✉️", e -> {
-            try {
-                // הכנס כאן את המייל האישי האמיתי שלך כדי שתראה את ההודעה מגיעה
-                userDashboardFacadeService.sendTestEmail(
-                        currUser.getEmail(),
-                        "עדכון - יש לך התאמה חדשה עם...",
-                        "שלום , (משתמש) . אנו שמחים להודיעך כי נמצאה לך התאמה ! עם ___ \n אנא כנס לאתר על מנת להיכנס לתהליך. \n תודה רבה , צוות שִׁידֶעךְ");
-                Notification.show("האימייל נשלח! ");
-            } catch (Exception ex) {
-                Notification.show("שגיאה בשליחה: " + ex.getMessage());
-            }
-        });
 
-        header.add(greeting, activeBadge, btnTestEmail);
+        header.add(greeting, activeBadge);
         return header;
     }
 
@@ -135,6 +124,7 @@ public class UserDashboardView extends VerticalLayout implements BeforeEnterObse
 
         return statusCard;
     }
+
 
     // --- חלק 3: סטטיסטיקות מעודכן ודינמי ---
     private HorizontalLayout create_Part3_Stats() {
@@ -244,14 +234,39 @@ public class UserDashboardView extends VerticalLayout implements BeforeEnterObse
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
+
         currUser = (User) SessionHelper.getAttribute("currentUser");
+
 
         if (currUser == null) {
             event.forwardTo(AuthView.class);
         } else if (!currUser.isProfileComplete()) {
             event.forwardTo(WizardView.class);
         } else {
-            buildDashboard();
+            {
+                /* יש משתמש קיים ומחובר */
+
+                // אם יש שידוך -> נשלוף את השידוך + פרטנר
+
+                currMatch = userDashboardFacadeService.getCurrentActiveOrPendingMatch(currUser.getId(),
+                        currUser.getGender());
+                if (currMatch != null) {
+
+                    // יש שידוך זמין כשלהו למשתמש הנוכחי בדף
+
+                    if (currUser.getGender().equals(Gender.MALE)) {
+                        currPartner = userDashboardFacadeService.findUserById(currMatch.getWomanId());
+                    } else {
+                        currPartner = userDashboardFacadeService.findUserById(currMatch.getManId());
+                    }
+
+                }
+
+                // נבנה את הדף - כי יש עם מה לעבוד
+                buildDashboard();
+            }
+
         }
+
     }
 }

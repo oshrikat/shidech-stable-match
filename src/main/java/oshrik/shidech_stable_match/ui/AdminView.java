@@ -21,8 +21,7 @@ import com.vaadin.flow.router.Route;
 
 import oshrik.shidech_stable_match.datamodels.User;
 import oshrik.shidech_stable_match.datamodels.User.ROLE;
-import oshrik.shidech_stable_match.services.DataGenerationService;
-import oshrik.shidech_stable_match.services.MatchmakingService;
+import oshrik.shidech_stable_match.services.MatchAlgoFacadeService;
 import oshrik.shidech_stable_match.services.UserService;
 import oshrik.shidech_stable_match.utilities.RouteHelper;
 import oshrik.shidech_stable_match.utilities.SessionHelper;
@@ -31,22 +30,25 @@ import oshrik.shidech_stable_match.utilities.SessionHelper;
 public class AdminView extends VerticalLayout implements BeforeEnterObserver 
 {
 
-    private UserService userService;
+    // Services
+    private final MatchAlgoFacadeService matchAlgoFacadeService;
+
+    // UI's
     private Grid<User> usersGrid;
 
     // רכיבי הוספת משתמש
     private TextField userNameTextField;
     private TextField userPassWordField;
     private ComboBox<ROLE> combo_chooseRole;
-    private Button btnInsert, btnClearData;
+    private Button btnInsert, btnClearData, btnSet_Restart_Status_Users;
 
     // פרטי משתמש
     String userName;
 
-    public AdminView(UserService userService) {
+    public AdminView(MatchAlgoFacadeService matchAlgoFacadeService) {
 
         // אתחול התלויות
-        this.userService = userService;
+        this.matchAlgoFacadeService = matchAlgoFacadeService;
 
         // --- 1. כותרות ופרטי סשן ---
         userName = "?";
@@ -81,7 +83,7 @@ public class AdminView extends VerticalLayout implements BeforeEnterObserver
             if (searchTerm.isEmpty()) {
                 refreshGrid();
             } else {
-                usersGrid.setItems(userService.getAllUsersLikeName(searchTerm));
+                usersGrid.setItems(matchAlgoFacadeService.getAllUsersLikeName(searchTerm));
             }
         });
 
@@ -95,7 +97,7 @@ public class AdminView extends VerticalLayout implements BeforeEnterObserver
         // מחיקת משתמש בלחיצה כפולה
         usersGrid.addItemDoubleClickListener(e -> {
             User cu = e.getItem();
-            userService.deleteUser(cu);
+            matchAlgoFacadeService.deleteUser(cu);
             refreshGrid();
             Notification.show("User " + cu.getUsername() + " was deleted!", 3000, Position.BOTTOM_CENTER);
         });
@@ -116,20 +118,56 @@ public class AdminView extends VerticalLayout implements BeforeEnterObserver
 
         dialog.addConfirmListener(event -> {
             // מחיקה של כל המשתמשים
-            userService.deleteAllUsers_NO_ADMIN();
+            matchAlgoFacadeService.deleteAllUsers_NO_ADMIN();
             refreshGrid(); // רענון הטבלה במסך
             Notification.show("המסד נוקה בהצלחה! ✨");
         });
+
 
         // 4. יצירת הכפתור שפותח את הדיאלוג
         btnClearData = new Button("Fresh Start 🧹", e -> dialog.open());
         btnClearData.addThemeVariants(ButtonVariant.LUMO_ERROR); // עיצוב אדום לכפתור הראשי
 
-        // טעינה ראשונית של הנתונים
-        refreshGrid();
+        /*
+         * כפתור נוסף - איפוס שידוכים
+         */
+
+        // כפתור ניקיון ואיפוס של כל השידוכים הקיימים
+        // 1. יצירת רכיב הדיאלוג
+        ConfirmDialog dialog2 = new ConfirmDialog();
+        dialog2.setHeader("איפוס וניקוי שידוכים קיימים");
+        dialog2.setText("האם אתה בטוח שברצונך לנקות ולאפס את השידוכים הקיימים במערכת? פעולה זו אינה ניתנת לביטול.");
+
+        // 2. הגדרת כפתור הביטול
+        dialog2.setCancelable(true);
+        dialog2.setCancelText("ביטול");
+
+        // 3. הגדרת כפתור האישור (ה-Action האמיתי)
+        dialog2.setConfirmText("מחק הכל!");
+        dialog2.setConfirmButtonTheme("error primary"); // הופך את הכפתור לאדום (אזהרה)
+
+        dialog2.addConfirmListener(event -> {
+
+            // ניקוי אוסף של שידוכים
+            matchAlgoFacadeService.deleteALL_Matches();
+
+            // ניקוי אוסף של התאמות - ציוני התאמות
+            matchAlgoFacadeService.deleteALL_MatchScores();
+
+            // איפוס סטטוס משתמשים - גם מוחק פרטנר וגם הופך ל AVAILABLE
+            matchAlgoFacadeService.freeUsersFromPartner();
+
+            refreshGrid(); // רענון הטבלה במסך
+            Notification.show("המסד נוקה בהצלחה! ✨");
+        });
+
+        // איפוס שידוכים
+        btnSet_Restart_Status_Users = new Button("Fresh Start Matches !", e -> dialog2.open());
+        btnSet_Restart_Status_Users.addThemeVariants(ButtonVariant.LUMO_WARNING); // עיצוב אדום לכפתור הראשי
 
         // --- 5. הוספת כל הרכיבים למסך לפי הסדר ---
-        add(title, userInfo, logoutBtn, btnClearData, addLayout, searchLayout, usersGrid);
+        add(title, userInfo, logoutBtn, btnClearData, btnSet_Restart_Status_Users, addLayout, searchLayout, usersGrid);
+
     }
 
     private void insertUserToDB() {
@@ -144,7 +182,7 @@ public class AdminView extends VerticalLayout implements BeforeEnterObserver
             User newAdminUser = new User(name, pass, pass, role);
 
             /* נשמור עליו בבסיס הנתונים */
-            if (userService.saveAdminUser(newAdminUser)) {
+            if (matchAlgoFacadeService.saveAdminUser(newAdminUser)) {
                 Notification.show("User Saved Seccussfully !! ", 4000, Position.TOP_STRETCH, true);
                 userNameTextField.clear();
                 userPassWordField.clear();
@@ -166,7 +204,7 @@ public class AdminView extends VerticalLayout implements BeforeEnterObserver
     }
 
     private void refreshGrid() {
-        usersGrid.setItems(userService.getAllUsers());
+        usersGrid.setItems(matchAlgoFacadeService.getAllUsers());
     }
 
     private void logout() {
@@ -177,16 +215,18 @@ public class AdminView extends VerticalLayout implements BeforeEnterObserver
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
-
         User u = (User) SessionHelper.getAttribute("currentUser");
 
         if (u != null) {
-
-            if (!(u.getRole().equals(ROLE.ADMIN)) && !(u.getRole().equals(ROLE.MASTER_ADMIN)))
+            if (!(u.getRole().equals(ROLE.ADMIN)) && !(u.getRole().equals(ROLE.MASTER_ADMIN))) {
                 event.forwardTo(UserDashboardView.class);
+            } else {
+                // רק אדמין מורשה מגיע לפה - עכשיו אפשר לטעון את הנתונים בטחה!
+                refreshGrid();
+            }
         } else {
             event.forwardTo(AuthView.class);
         }
-
     }
+
 }

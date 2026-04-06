@@ -179,7 +179,10 @@ public class MyMatchView extends VerticalLayout implements BeforeEnterObserver, 
     @Override
     protected void onAttach(AttachEvent attachEvent) {
         super.onAttach(attachEvent);
+
         ui = attachEvent.getUI();
+
+        if (chatList != null) {
 
         // ---> הרשמה למרכזייה <---
         // קרא ל-register והעבר את ה-ID שלך ואת this (המסך שמאזין)
@@ -202,15 +205,18 @@ public class MyMatchView extends VerticalLayout implements BeforeEnterObserver, 
                     .toList();
             chatList.setItems(items);
         }
+    }
 
     }
 
     @Override
     protected void onDetach(DetachEvent detachEvent) {
         super.onDetach(detachEvent);
-        // ---> התנתקות <---
 
+        // ---> התנתקות (רק אם באמת היינו בצ'אט!) <---
+        if (chatList != null) {
         chatService.unregister(curUserOnline.getId());
+    }
 
     }
 

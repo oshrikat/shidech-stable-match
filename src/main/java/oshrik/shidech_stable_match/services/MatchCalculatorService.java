@@ -35,6 +35,7 @@ public class MatchCalculatorService
     private final static double WEIGHT_SCALE_OPENNESS = WEIGHT_20;
 
 
+
     // --- מימוש הפונקציה לחישוב כל פרק 3 ---
     private double calcPreferencesScore(User me, User her) {
         // הציון הסופי של החישוב ציון התאמה ביניהם
@@ -201,4 +202,5 @@ public class MatchCalculatorService
     public double calculateTotalScore(User me , User her) {
         return (calcPersonalityScore(me, her) * WEIGHT_PERSONALITY) + (calcPreferencesScore(me, her) * WEIGHT_PREFERENCES);
     }
+
 }

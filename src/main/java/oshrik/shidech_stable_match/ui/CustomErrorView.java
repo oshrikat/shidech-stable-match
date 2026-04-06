@@ -31,7 +31,7 @@ public class CustomErrorView extends VerticalLayout implements HasErrorParameter
         Button homeButton = new Button("קח אותי הביתה");
         homeButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         homeButton.addClickListener(e -> { 
-            RouteHelper.navigateTo("/");
+            RouteHelper.navigateTo(UserDashboardView.class);
     });
 
         add(title, description, explain, homeButton);
