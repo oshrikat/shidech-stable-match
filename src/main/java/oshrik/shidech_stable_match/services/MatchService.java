@@ -51,18 +51,44 @@ public class MatchService {
     }
 
     private void sendEmailToCouple(Match match) {
-         
-        // Calling EmailService & Sending Each One an Email With the details...
-        User man, woman;
-        man = userService.findUserById(match.getManId());
-        woman = userService.findUserById(match.getWomanId());
 
-        emailService.sendSimpleEmail(man.getEmail(), "בדיקה , 1 , 2 ?? נוצר לך שידוך ! מזל טוב ",
-                "שלום רב " + man.getFullName()
-                        + " שמחים להודיעך כי נמצא לך שידוך עם : (קודם כל שישלח !!!!)  אבל בגדול השידוך עם : "
-                        + woman.getFullName() + "מעוניין בה ???");
+        User man = userService.findUserById(match.getManId());
+        User woman = userService.findUserById(match.getWomanId());
+
+        // Email subject
+        String subject = "היי , נוצרה עבורך התאמה חדשה במערכת שידעך - כנס לפרטים נוספים";
+
+        // Email body for the man
+        String manBody = "שלום רב " + man.getFullName() + ",\n\n" +
+                "אנו שמחים לבשר כי נמצאה עבורך התאמה חדשה במערכת \"שידעך\".\n\n" +
+                "פרטי ההתאמה:\n" +
+                "שם בת הזוג: " + woman.getFullName() + "\n\n" +
+                "צוות \"שידעך\" פועל במלוא הרצינות והאחריות כדי ליצור חיבורים איכותיים ומשמעותיים.\n" +
+                "מאחלים לך הצלחה רבה בהמשך הדרך.\n\n" +
+                "בברכה,\n" +
+                "צוות מערכת שידעך";
+
+        // Email body for the woman
+        String womanBody = "שלום רב " + woman.getFullName() + ",\n\n" +
+                "אנו שמחים לבשר כי נמצאה עבורך התאמה חדשה במערכת \"שידעך\".\n\n" +
+                "פרטי ההתאמה:\n" +
+                "שם בן הזוג: " + man.getFullName() + "\n\n" +
+                "צוות \"שידעך\" פועל במלוא הרצינות והאחריות כדי ליצור חיבורים איכותיים ומשמעותיים.\n" +
+                "מאחלים לך הצלחה רבה בהמשך הדרך.\n\n" +
+                "בברכה,\n" +
+                "צוות מערכת שידעך";
+
+        // Sending emails - (יש היערה זמנית באימייל - למחוק כאשר המערכת עולה)
+        emailService.sendSimpleEmail(man.getEmail(), subject,
+                "לא להתייחס ! זה פיילוט , תודה. מצטער על ההטרדה , אבל תוטרדו עוד רבות  בעזרת השם \n" + manBody
+                        + "\n פסח כשר ושמח , מועדים לסליחה");
+
+        emailService.sendSimpleEmail(woman.getEmail(), subject,
+                "לא להתייחס ! זה פיילוט , תודה. מצטער על ההטרדה , אבל תוטרדו עוד רבות  בעזרת השם \n" + womanBody
+                        + "\n פסח כשר ושמח , מועדים לסליחה");
 
     }
+
 
     /**
      * 2. שליפת הנתונים לדאשבורד

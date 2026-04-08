@@ -175,5 +175,9 @@ public class UserDashboardFacadeService {
 
      }
 
+     public void updateUser(User currUser) {
+
+         userService.updateFullUser(currUser);
+     }
 
 }

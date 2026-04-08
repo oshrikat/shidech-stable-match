@@ -27,6 +27,7 @@ import oshrik.shidech_stable_match.datamodels.User;
 import oshrik.shidech_stable_match.datamodels.Match.MatchStatus;
 import oshrik.shidech_stable_match.datamodels.User.Gender;
 import oshrik.shidech_stable_match.datamodels.User.ROLE;
+import oshrik.shidech_stable_match.datamodels.User.UserStatus;
 import oshrik.shidech_stable_match.services.ChatService;
 import oshrik.shidech_stable_match.services.MatchService;
 import oshrik.shidech_stable_match.services.UserService;
@@ -43,7 +44,7 @@ public class MyMatchView extends VerticalLayout implements BeforeEnterObserver, 
     private final ChatService chatService;
 
     // Enteties : Data Models...
-    private User curUserOnline;
+    private User currUserOnline;
     private Match currMatch;
     private MessageList chatList;
     private UI ui;
@@ -86,7 +87,7 @@ public class MyMatchView extends VerticalLayout implements BeforeEnterObserver, 
     }
 
     // מסך זמני דפולטיבי כאשר אני לא יודע לאן לנווט - זמני !
-    private void buildUI3() {
+    private void buildUI3_defualt() {
         removeAll(); // ניקוי למקרה של רענון
 
         H1 title = new H1("מזל טוב , שניכם  מעוניינים להכיר !  - אנחנו לא יודעים מה לעשות אתכם למען האמת");
@@ -102,18 +103,34 @@ public class MyMatchView extends VerticalLayout implements BeforeEnterObserver, 
         add(title, nameHeading, details, actions);
     }
 
+    private void buildUI4_Details() {
+        removeAll(); // ניקוי למקרה של רענון
+
+        H1 title = new H1("אישרת את ההצעה עם : " + partner.getFullName());
+        title.getStyle().setColor("darkgreen");
+
+        Span details = new Span("גיל: " + partner.getAge() + " | עיסוק: " + partner.getOccupation());
+
+        add(title, details);
+    }
+
     private User getMan(String manID) 
     {
-        return userService.findUserById(manID);
+        return getUser(manID);
     }
 
     private User getWoman(String womanID) {
-         return userService.findUserById(womanID);
+        return getUser(womanID);
+    }
+
+    private User getUser(String id) {
+        return userService.findUserById(id);
     }
 
     private void handleResponse(boolean isAccepted) {
         // קריאה לשירות לעדכון התשובה
-        boolean result = matchService.updateMatchResponse(currMatch.getId(), curUserOnline.getId(), isAccepted,curUserOnline.getGender());
+        boolean result = matchService.updateMatchResponse(currMatch.getId(), currUserOnline.getId(), isAccepted,
+                currUserOnline.getGender());
         
         if(result)
             {
@@ -149,11 +166,11 @@ public class MyMatchView extends VerticalLayout implements BeforeEnterObserver, 
         input.setWidth("100%");
         input.addSubmitListener(e -> {
             // ---> שליחת הודעה <---
-            chatService.sendMessage(currMatch.getId(), curUserOnline.getId(), partner.getId(), e.getValue());
+            chatService.sendMessage(currMatch.getId(), currUserOnline.getId(), partner.getId(), e.getValue());
 
             // שליהה אליי
             onNewMessageArrived(
-                    new ChatMessage(currMatch.getId(), curUserOnline.getId(), curUserOnline.getId(), e.getValue()));
+                    new ChatMessage(currMatch.getId(), currUserOnline.getId(), currUserOnline.getId(), e.getValue()));
         });
 
         add(title, chatList, input);
@@ -167,7 +184,7 @@ public class MyMatchView extends VerticalLayout implements BeforeEnterObserver, 
             MessageListItem newMessage = new MessageListItem();
             newMessage.setText(message.getContent());
             newMessage.setTime(message.getTimestamp().toInstant(java.time.ZoneOffset.UTC));
-            newMessage.setUserName(message.getSenderId().equals(curUserOnline.getId()) ? curUserOnline.getUsername()
+            newMessage.setUserName(message.getSenderId().equals(currUserOnline.getId()) ? currUserOnline.getUsername()
                     : partner.getFirstName());
             newMessage.setUserAbbreviation("***SENDER...****");
 
@@ -187,7 +204,7 @@ public class MyMatchView extends VerticalLayout implements BeforeEnterObserver, 
         // ---> הרשמה למרכזייה <---
         // קרא ל-register והעבר את ה-ID שלך ואת this (המסך שמאזין)
 
-        chatService.register(curUserOnline.getId(), this);
+        chatService.register(currUserOnline.getId(), this);
 
         // ---> טעינת היסטוריה <---
         // שלוף את ההיסטוריה מה-Service לתוך רשימה
@@ -200,7 +217,7 @@ public class MyMatchView extends VerticalLayout implements BeforeEnterObserver, 
                     .map(msg -> new MessageListItem(
                             msg.getContent(),
                             msg.getTimestamp().toInstant(java.time.ZoneOffset.UTC),
-                            msg.getSenderId().equals(curUserOnline.getId()) ? curUserOnline.getFirstName()
+                            msg.getSenderId().equals(currUserOnline.getId()) ? currUserOnline.getFirstName()
                                     : partner.getFirstName()))
                     .toList();
             chatList.setItems(items);
@@ -215,48 +232,66 @@ public class MyMatchView extends VerticalLayout implements BeforeEnterObserver, 
 
         // ---> התנתקות (רק אם באמת היינו בצ'אט!) <---
         if (chatList != null) {
-        chatService.unregister(curUserOnline.getId());
+            chatService.unregister(currUserOnline.getId());
     }
 
     }
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
-        curUserOnline = (User) SessionHelper.getAttribute("currentUser");
+        // מושך את המשתמש שכרגע מחובר
+        currUserOnline = (User) SessionHelper.getAttribute("currentUser");
 
-        if (curUserOnline == null) {
+        if (currUserOnline == null) {
             event.forwardTo(AuthView.class);
             return;
         }
 
-        if (!curUserOnline.getRole().equals(ROLE.USER)) {
+        // האם המשתמש סוג של אדמין ?
+        if (!currUserOnline.getRole().equals(ROLE.USER)) {
             event.forwardTo(AdminView.class);
             return;
         }
 
+        // מעדכן את המשתמש הנוכחי , עם הנתונים הכי עדכניים ממסד הנתונים
+        currUserOnline = getUser(currUserOnline.getId());
+
+        // עדכון המערכת כולה בנתונים הכי מעודכנים של המשתמש - כל דף ישמשוט את המשתמש ,
+        // יקבל אותו מעודכן תמיד
+        SessionHelper.setAttribute("currentUser", currUserOnline);
+
         // בדיקה האם קיים שידוך פעיל
-        currMatch = matchService.getCurrentActiveOrPendingMatch(curUserOnline.getId(), curUserOnline.getGender());
-
-        // נשיג את הזוג
-        if (curUserOnline.getGender().equals(Gender.MALE))
-            partner = userService.findUserById(currMatch.getWomanId());
-        else
-            partner = userService.findUserById(currMatch.getManId());
-
-        System.out.println("Match status: " + currMatch);
+        currMatch = matchService.getCurrentActiveOrPendingMatch(currUserOnline.getId(), currUserOnline.getGender());
 
         if (currMatch == null) {
             event.forwardTo(UserDashboardView.class);
         } else {
+            // נשיג את הזוג
+            if (currUserOnline.getGender().equals(Gender.MALE))
+                partner = getUser(currMatch.getWomanId());
+
+            else
+                partner = getUser(currMatch.getManId());
+
+            System.out.println("Match status: " + currMatch);
+
             // רק אם הכל תקין, בונים את התצוגה של השידוך הנוכחי - לפי מצבו
             if (currMatch.getStatus().equals(MatchStatus.PENDING_RESPONSES))
-                buildUI1();
+            {
+                if (currUserOnline.getStatus().equals(UserStatus.AGREEE_WATING))
+                    buildUI4_Details();
+                else
+                    buildUI1();
+
+            }
             else if (currMatch.getStatus().equals(MatchStatus.PRE_DATING_EVALUATION))
                 buildUI2_CHAT();
+
             else
-                buildUI3();
+                buildUI3_defualt();
 
         }
     }
+
 
 }

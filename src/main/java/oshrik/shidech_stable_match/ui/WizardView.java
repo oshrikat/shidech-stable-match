@@ -13,6 +13,8 @@ import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.component.upload.Upload;
+import com.vaadin.flow.component.upload.receivers.MemoryBuffer;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.Route;
@@ -31,6 +33,10 @@ public class WizardView extends VerticalLayout implements BeforeEnterObserver {
     private DatePicker birthDateField;
     private ComboBox<User.Gender> genderComboBox;
     private ComboBox<User.MaritalStatus> maritalStatusComboBox;
+
+    // ---> השדות לשמירת התמונת פרופיל של המשתמש <---
+    private Upload uploadProfileImage;
+    private String base64ImageString = null; // ישמור את התמונה המקודדת
 
     // פרק 2: User Data
     private ComboBox<User.ReligiousLevel> religiousLevelBox;
@@ -92,6 +98,11 @@ public class WizardView extends VerticalLayout implements BeforeEnterObserver {
                 currUser.setGender(genderComboBox.getValue());
                 currUser.setMaritalStatus(maritalStatusComboBox.getValue());
 
+                // ---> שמירת התמונה! <---
+                if (base64ImageString != null) {
+                    currUser.setPhotoUrl(base64ImageString);
+                }
+
                 // פרק 2
                 currUser.setReligiousLevel(religiousLevelBox.getValue());
                 currUser.setOccupation(occupationBox.getValue());
@@ -152,8 +163,35 @@ public class WizardView extends VerticalLayout implements BeforeEnterObserver {
 
         genderComboBox.setItems(User.Gender.values());
         maritalStatusComboBox.setItems(User.MaritalStatus.values());
+        // ---> הלוגיקה של העלאת התמונה <---
+        com.vaadin.flow.server.streams.UploadHandler uploadHandler = (request) -> {
+            try {
+                // 1. קריאת כל המידע מהזרם (InputStream) לתוך מערך של בתים (byte array)
+                byte[] fileBytes = request.getInputStream().readAllBytes();
 
-        layout.add(sectionTitle, firstNameField, lastNameField, birthDateField, genderComboBox, maritalStatusComboBox);
+                // 2. המרת מערך הבתים למחרוזת טקסט בפורמט Base64
+                String base64Encoded = java.util.Base64.getEncoder().encodeToString(fileBytes);
+
+                // 3. יצירת המחרוזת הסופית עם הקידומת שהדפדפן צריך כדי להציג תמונה
+                base64ImageString = "data:" + request.getContentType() + ";base64,"
+                        + base64Encoded;
+
+                getUI().ifPresent(ui -> ui.access(
+                        () -> Notification.show("התמונה הועלתה והומרה בהצלחה!", 3000, Notification.Position.MIDDLE)));
+
+            } catch (java.io.IOException e) {
+                throw new RuntimeException("שגיאה בקריאת הקובץ", e);
+            }
+        };
+
+        uploadProfileImage = new Upload(uploadHandler);
+        uploadProfileImage.setAcceptedFileTypes("image/jpeg", "image/png"); // רק תמונות
+        uploadProfileImage.setMaxFileSize(5 * 1024 * 1024); // הגבלה ל-5MB
+        uploadProfileImage.setDropLabel(new com.vaadin.flow.component.html.Span("גרור תמונת פרופיל לכאן (או לחץ)"));
+
+        // הוספנו את ה-uploadProfileImage ל-layout!
+        layout.add(sectionTitle, uploadProfileImage, firstNameField, lastNameField, birthDateField, genderComboBox,
+                maritalStatusComboBox);
         return layout;
     }
 

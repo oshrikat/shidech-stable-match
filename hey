@@ -1,0 +1,19 @@
+[33mc277400f[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m 6.04.26  21:50 : -> Upgrade AuthView UI to Glassmorphism and implement Admin DB reset
+[33m56eb9dd0[m 4.04.26 : 23:27 : implement real-time MVP chat and Match state machine
+[33md32ca8d2[m 01.04.26  18:34 : Establish UserDashboardFacadeService, optimize DB fetches by reducing redundant calls, and implement functional EmailService with Gmail SMTP integration.
+[33md7f4f0e9[m 31.03.26  23:07 : Implement MatchAlgoFacadeService, handle UI state restoration on refresh, and integrate custom 404/500 error pages
+[33me19fdc4d[m 31.03.26  16:50 : Implement " MatchAlgoFacadeService " , resolve UI state management on refresh, and fix match status DB synchronization
+[33mfdb919dd[m 27.03.26  14:00  : implement MASTER_ADMIN role, upgrade routing security, and add admin creation UI
+[33m99cc4e5e[m 26.03.26  16:40 : implement Match model, repository with In queries, and complete MatchService logic for status updates
+[33m4332c31b[m 25.03.26  23:13  : Fix User DashBoard View + Define New Field To user - Admin and User (regular) - algo knows to ingnore users who is Admin.
+[33m93299393[m 25.03.26  14:32  : Implement MatchScore ecosystem and dashboard integration" -m "Created MatchScore data model, repository, and service to persist calculated compatibility scores in MongoDB. Integrated MatchScoreService into MatchmakingService to automatically clear and save a fresh snapshot of scores before algorithm execution. Updated UserDashboardView to dynamically query and display the user's highest potential match score.
+[33m2a5254f2[m 24.03.26  12:18 : implement User Dashboard with dynamic matchmaking status" -m "Added UserDashboardView using Vaadin Layouts (no external CSS). Implemented conditional UI logic to display either 'waiting' or 'matched' status based on the user's currentPartner. Bound user profile data and Big 5 personality traits to visual ProgressBars. Solidified architecture to rely on MongoDB as the single source of truth for matchmaking state.
+[33m549c27e7[m 22.03.26 16:13 : build public  HomeView UI with Vaadin layouts and CSS grids
+[33m80b863ee[m 21.03.26  22:45 : Prevent data bloat on generation and add UI state management for algorithm results
+[33m36c3f9e1[m 20.03.26 17:22 :  Async Gale-Shapley integration, dynamic progress bar, and custom MatchCard/Navbar UI
+[33m2565b83c[m 18.03.26  23:00  Gale-Shapley Algorithm Integration & Match Results UI
+[33mf4f990e6[m 17.03.26   20:08   update user model, data generation service, matchmaking services & UI test view
+[33m86b7c276[m 06/03/26 12:58 : Secure MongoDB URI using environment variables
+[33mc9b5e738[m 05/03/2026 21:02 - Initial setup: Spring Boot, Vaadin, and MongoDB integration with User CRUD and UI
+[33m44158179[m 24.02 | 11:45 Update header text in UserView to indicate modification
+[33m98085bf5[m first commit

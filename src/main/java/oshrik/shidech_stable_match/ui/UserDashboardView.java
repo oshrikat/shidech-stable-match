@@ -6,15 +6,27 @@ import java.time.Period;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.datepicker.DatePicker;
+import com.vaadin.flow.component.dialog.Dialog;
+import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.H4;
+import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.progressbar.ProgressBar;
+import com.vaadin.flow.component.textfield.IntegerField;
+import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.data.binder.Binder;
+import com.vaadin.flow.data.binder.ValidationException;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.Route;
@@ -43,6 +55,9 @@ public class UserDashboardView extends VerticalLayout implements BeforeEnterObse
     private User currUser;
     private User currPartner;
 
+    // UI
+    private UI ui;
+
     public UserDashboardView(UserDashboardFacadeService userDashboardFacadeService) {
         this.userDashboardFacadeService = userDashboardFacadeService;
 
@@ -51,6 +66,8 @@ public class UserDashboardView extends VerticalLayout implements BeforeEnterObse
         getStyle().set("direction", "rtl"); 
         getStyle().set("background-color", "#f4f4f9"); 
         getStyle().set("padding", "40px");
+
+        ui = UI.getCurrent();
     }
 
     private void buildDashboard() {
@@ -72,7 +89,7 @@ public class UserDashboardView extends VerticalLayout implements BeforeEnterObse
         header.setJustifyContentMode(JustifyContentMode.BETWEEN);
         header.setAlignItems(Alignment.CENTER);
 
-        H2 greeting = new H2("שלום, " + currUser.getFirstName() + " 👋");
+        H2 greeting = new H2("שלום, " + currUser.getUsername() + " 👋");
         greeting.getStyle().set("margin", "0");
 
         Span activeBadge = new Span("🟢 פרופיל פעיל");
@@ -164,6 +181,7 @@ public class UserDashboardView extends VerticalLayout implements BeforeEnterObse
 
     // --- חלק 4: אזור מפוצל ---
     private HorizontalLayout create_Part4_SplitZone() {
+
         HorizontalLayout splitLayout = new HorizontalLayout();
         splitLayout.setWidth("80%");
         splitLayout.getStyle().set("margin-top", "20px");
@@ -175,7 +193,46 @@ public class UserDashboardView extends VerticalLayout implements BeforeEnterObse
         profileCard.getStyle().set("box-shadow", "0 4px 8px rgba(0,0,0,0.1)");
         profileCard.setWidth("50%");
 
-        profileCard.add(new H4("הפרופיל שלי"));
+        // --- יצירת ההדר של כרטיסיית הפרופיל ---
+        HorizontalLayout profileHeader = new HorizontalLayout();
+        profileHeader.setWidthFull();
+        // מרווח את האיברים לקצוות - הכותרת בימין, העיפרון בשמאל (בגלל RTL)
+        profileHeader.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
+        profileHeader.setAlignItems(FlexComponent.Alignment.CENTER);
+
+        H4 profileTitle = new H4("הפרופיל שלי");
+        profileTitle.getStyle().set("margin", "0"); // חשוב כדי שהיישור יהיה נקי
+
+        Button editProfileBtn = new Button(VaadinIcon.EDIT.create());
+        editProfileBtn.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ICON);
+        editProfileBtn.getElement().setProperty("title", "ערוך פרטים");
+
+        // כאן אנחנו קוראים לפונקציה שתפתח את המודאל
+        editProfileBtn.addClickListener(e -> openEditProfileDialog());
+
+        profileHeader.add(profileTitle, editProfileBtn);
+
+        // מוסיפים את ההדר לכרטיסייה במקום הכותרת הרגילה
+        profileCard.add(profileHeader);
+
+        // ---> הלוגיקה של התמונה <---
+        if (currUser.getPhotoUrl() != null && !currUser.getPhotoUrl().isEmpty()) {
+            // מעבירים את ה-URL השמור (המחרוזת שלנו) וטקסט חלופי
+            Image profileImg = new Image(currUser.getPhotoUrl(), "תמונת פרופיל");
+
+            // עיצוב כדי שהתמונה תיראה טוב
+            profileImg.setWidth("120px");
+            profileImg.setHeight("120px");
+            profileImg.getStyle().set("border-radius", "50%"); // עושה את התמונה עגולה
+            profileImg.getStyle().set("object-fit", "cover"); // שומר על פרופורציות התמונה
+            profileImg.getStyle().set("margin-bottom", "15px");
+
+            profileCard.add(profileImg);
+        } else {
+            // אם אין תמונה, נציג טקסט או סמיילי
+            profileCard.add(new Span("👤 אין תמונת פרופיל"));
+        }
+
         profileCard.add(new Span("שם: " + currUser.getFullName()));
         profileCard.add(new Span("גיל: " + currUser.getAge()));
         profileCard.add(new Span("השכלה: " + (currUser.isHasDegree() ? "אקדמאית" : "ללא תואר")));
@@ -198,6 +255,71 @@ public class UserDashboardView extends VerticalLayout implements BeforeEnterObse
 
         splitLayout.add(profileCard, personalityCard);
         return splitLayout;
+    }
+
+    private void openEditProfileDialog() {
+        Dialog dialog = new Dialog();
+        dialog.setHeaderTitle("עריכת פרטי פרופיל");
+        dialog.setWidth("400px");
+
+        // 1. יצירת השדות
+        TextField usernameField = new TextField("שם משתמש");
+        DatePicker dateBirth = new DatePicker("תאריך לידה");
+
+        FormLayout formLayout = new FormLayout(usernameField, dateBirth);
+
+        // 2. הגדרת ה-Binder
+        Binder<User> binder = new Binder<>(User.class);
+
+        // תיקון קריטי: Getter ו-Setter תואמים
+        binder.forField(usernameField)
+                .asRequired("שדה חובה")
+                .bind(User::getUsername, User::setUsername);
+
+        // הוספת ולידציית גיל (מעל 18) על DatePicker
+        binder.forField(dateBirth)
+                .asRequired("שדה חובה")
+                .withValidator(date -> {
+                    if (date == null)
+                        return false;
+                    // מחשב את השנים בין תאריך הלידה להיום
+                    int age = java.time.Period.between(date, java.time.LocalDate.now()).getYears();
+                    return age >= 17;
+                }, "חובה להיות מעל גיל 17")
+                .bind(User::getBirthDate, User::setBirthDate);
+
+        // 3. טעינת הנתונים הנוכחיים לתוך הטופס
+        binder.readBean(currUser);
+
+        // 4. כפתורי פעולה
+        Button saveBtn = new Button("שמור ועדכן", event -> {
+            try {
+                // מנסה לכתוב מהטופס למשתמש. אם הגיל קטן מ-17, זה יזרוק שגיאה
+                // וייקפוץ ל-catch
+                binder.writeBean(currUser);
+
+                // שמירה ב-Facade (שמבצעת שמירה במונגו)
+                userDashboardFacadeService.updateUser(currUser);
+
+                dialog.close();
+                Notification.show("הפרופיל עודכן בהצלחה!", 3000, Notification.Position.TOP_CENTER);
+
+                // רענון העמוד - הדרך הבטוחה ב-Vaadin לעשות Reload
+                ui.getPage().reload();
+
+            } catch (ValidationException e) {
+                Notification.show("יש לתקן את השגיאות בטופס", 3000, Notification.Position.MIDDLE);
+            }
+        });
+        saveBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+
+        Button cancelBtn = new Button("ביטול", e -> dialog.close());
+        cancelBtn.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+
+        dialog.add(formLayout);
+        dialog.getFooter().add(cancelBtn, saveBtn);
+
+        dialog.open();
     }
 
     private VerticalLayout createProgressBar(String label, int outOfTen) {
@@ -231,6 +353,9 @@ public class UserDashboardView extends VerticalLayout implements BeforeEnterObse
         return historyCard;
     }
 
+    private User getUser(String id) {
+        return userDashboardFacadeService.findUserById(id);
+    }
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
@@ -244,6 +369,13 @@ public class UserDashboardView extends VerticalLayout implements BeforeEnterObse
             event.forwardTo(WizardView.class);
         } else {
             {
+                // מעדכן את המשתמש הנוכחי , עם הנתונים הכי עדכניים ממסד הנתונים
+                currUser = getUser(currUser.getId());
+
+                // עדכון המערכת כולה בנתונים הכי מעודכנים של המשתמש - כל דף ישמשוט את המשתמש ,
+                // יקבל אותו מעודכן תמיד
+                SessionHelper.setAttribute("currentUser", currUser);
+
                 /* יש משתמש קיים ומחובר */
 
                 // אם יש שידוך -> נשלוף את השידוך + פרטנר
