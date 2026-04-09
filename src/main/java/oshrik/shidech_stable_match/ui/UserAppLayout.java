@@ -1,5 +1,6 @@
 package oshrik.shidech_stable_match.ui;
 
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.button.Button;
@@ -17,6 +18,8 @@ import oshrik.shidech_stable_match.utilities.SessionHelper;
 
 @CssImport("./themes/navbar.css")
 public class UserAppLayout extends AppLayout {
+
+    boolean connected;
 
     public UserAppLayout() {
         createHeader();
@@ -39,7 +42,8 @@ public class UserAppLayout extends AppLayout {
 
         // --- המשימה שלך: קישורי המשתמש ---
         Div navLinks = new Div(
-              createNavItem("אזור אישי", UserDashboardView.class),
+                createNavItem("דף בית", HomeView.class),
+                createNavItem("אזור אישי", UserDashboardView.class),
                 createNavItem(" השִׁידֶעךְ שלי", MyMatchView.class)
         );
         navLinks.addClassName("nav-links");
@@ -47,14 +51,20 @@ public class UserAppLayout extends AppLayout {
         Div spacer = new Div();
         spacer.getStyle().set("flex", "1");
 
-        // --- הרכבה כולל כפתור התנתקות ---
-        HorizontalLayout navbar = new HorizontalLayout(brand, navLinks, spacer, createLogoutButton());
+        // בדיקת משתמש מחובר
+
+        connected = SessionHelper.getAttribute("currentUser") != null;
+
+        // --- הרכבה כולל כפתור התנתקות או התחברות ---
+        HorizontalLayout navbar = new HorizontalLayout(brand, navLinks, spacer,
+                connected ? createLogoutButton() : createLoginButton());
         navbar.addClassName("main-navbar");
         navbar.setDefaultVerticalComponentAlignment(FlexComponent.Alignment.CENTER);
         navbar.setWidthFull();
 
         addToNavbar(navbar);
     }
+
 
     private Div createNavItem(String label, Class<? extends com.vaadin.flow.component.Component> view) {
         RouterLink link = new RouterLink(label, view);
@@ -91,4 +101,20 @@ public class UserAppLayout extends AppLayout {
 
         return logout;
     }
+
+    private Component createLoginButton() {
+
+        // כפתור התחברות
+        Button register = new Button("הרשמה");
+
+        register.addClickListener(e -> {
+
+            // נפנה את המשתמש שהתנתק ישר לדף הבית
+            RouteHelper.navigateTo(AuthView.class);
+
+        });
+
+        return register;
+    }
+
 }
