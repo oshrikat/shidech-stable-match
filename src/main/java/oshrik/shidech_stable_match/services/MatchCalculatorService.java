@@ -1,6 +1,7 @@
 package oshrik.shidech_stable_match.services;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import org.springframework.stereotype.Service;
 
@@ -63,7 +64,7 @@ public class MatchCalculatorService
 
     private double calcReligionScore(User me, User candidate) {
         // שלב 1: שלוף את מה שאני מוכן לקבל (הרשימה הלבנה שלי)
-        ArrayList<ReligiousLevel> myWhitelist = me.getAllowedReligiousLevels();
+        List<ReligiousLevel> myWhitelist = me.getAllowedReligiousLevels();
         
         // שלב 2: שלוף את מה שהיא באמת (הנתון שלה)
         ReligiousLevel herReality = candidate.getReligiousLevel();
@@ -79,7 +80,7 @@ public class MatchCalculatorService
      private double calcOccupationScore(User me, User candidate) {
         // לוגיקה: Whitelist
         
-        ArrayList<Occupation> myWhitelist = me.getAllowedOccupations();
+        List<Occupation> myWhitelist = me.getAllowedOccupations();
         Occupation herReality = candidate.getOccupation();
         
         if (myWhitelist != null && myWhitelist.contains(herReality)) {
@@ -169,7 +170,7 @@ public class MatchCalculatorService
     
     // פונקציה מיוחדת לבדיקת פסילות (ילדים, חיות)
     private boolean isDealBreaker(User me, User candidate) {
-        if((me.isRejectsChildren() && candidate.isHasChildren()) || 
+        if ((me.isRejectsChildren() && candidate.getNumberOfChildren() > 0) ||
             (me.isRejectsPets() && candidate.isHasPets()))
             return true;
 

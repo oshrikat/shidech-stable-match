@@ -81,6 +81,6 @@ public interface UserRepository extends MongoRepository<User, String> {
 
     @Query("{ 'role' : 'USER' }")
     @Update("{ '$set' : { 'status' :'AVAILABLE','currentPartner' : null } }")
-    void resetAllRegularUsers();
+    public void resetAllRegularUsers();
 
 }

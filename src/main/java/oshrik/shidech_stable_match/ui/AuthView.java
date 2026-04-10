@@ -1,9 +1,12 @@
 package oshrik.shidech_stable_match.ui;
 
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.Notification.Position;
+import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -97,26 +100,39 @@ public class AuthView extends HorizontalLayout {
         btn_Login_Submit.getStyle().set("color", "black"); // שיניתי לשחור שיהיה קריא על הרקע הבהיר של הכפתור
 
         btn_Login_Submit.addClickListener(e -> {
-            if (!emailField.isEmpty() && !passwordField.isEmpty() && !emailField.isInvalid()) {
+            // 1. בדיקת תקינות פורמט (לפני שפונים לשרת)
+            if (emailField.isEmpty() || passwordField.isEmpty() || emailField.isInvalid()) {
+                emailField.setInvalid(emailField.isEmpty() || emailField.isInvalid());
+                passwordField.setInvalid(passwordField.isEmpty());
+                return;
+            }
+
+            try {
+                // 2. ניסיון התחברות
                 User loginUser = userService.loginUser(emailField.getValue(), passwordField.getValue());
 
                 if (loginUser != null) {
-                    Notification.show("User Seccecfully Logged In to System !", 2000, Position.MIDDLE, true);
+                    // הצלחה
+                    showSuccessNotification("ברוך הבא, " + loginUser.getFullName() + "!");
                     SessionHelper.setAttribute("currentUser", loginUser);
 
-                    if (loginUser.getRole().equals(ROLE.USER))
-                        RouteHelper.navigateTo(UserDashboardView.class);
-                    else
+                    // ניווט לפי תפקיד [cite: 54, 365]
+                    if (loginUser.getRole().equals(ROLE.ADMIN)) {
                         RouteHelper.navigateTo(AdminView.class);
-
-                } else
-                    Notification.show("User Could'nt Log in to System ! Please Try Later...", 2000,
-                            Position.TOP_STRETCH, true);
             } else {
-                if (emailField.isEmpty())
-                    emailField.setInvalid(true);
-                if (passwordField.isEmpty())
-                    passwordField.setInvalid(true);
+                        RouteHelper.navigateTo(UserDashboardView.class);
+                    }
+                } else {
+                    // שגיאת משתמש: פרטים לא נכונים (מסר עמום בכוונה)
+                    showErrorNotification("אימייל או סיסמה אינם נכונים. אנא נסה שוב.");
+
+                }
+
+            } catch (Exception ex) {
+                // שגיאת מערכת: למשל MongoDB לא זמין [cite: 395]
+                // מדפיסים ללוג של השרת (לנו) אבל מציגים הודעה כללית למשתמש
+                ex.printStackTrace();
+                showErrorNotification("אופס! נראה שיש לנו תקלה טכנית זמנית. אנא נסה שוב בעוד כמה דקות.");
             }
         });
 
@@ -163,13 +179,13 @@ public class AuthView extends HorizontalLayout {
         emailField.getStyle().set("color", "white");
         emailField.setWidth("80%");
         applyWhiteOutlineStyle(emailField);
-        emailField.setErrorMessage("Please Fill the email !");
+        emailField.setErrorMessage("אנא מלא את האימייל");
 
         PasswordField passwordField = new PasswordField("סיסמה");
         passwordField.getStyle().set("color", "white");
         passwordField.setWidth("80%");
         applyWhiteOutlineStyle(passwordField);
-        passwordField.setErrorMessage("Please Fill the Password !");
+        passwordField.setErrorMessage("הסיסמא חייבת להיות להיות מלאה");
 
         Button btn_Register_Submit = new Button("הירשם והתחל");
         btn_Register_Submit.setWidth("80%");
@@ -177,25 +193,37 @@ public class AuthView extends HorizontalLayout {
         btn_Register_Submit.getStyle().set("color", "black");
 
         btn_Register_Submit.addClickListener(e -> {
-            if (!nameField.isEmpty() && !passwordField.isEmpty() && !emailField.isEmpty() && !emailField.isInvalid()) {
-                User newUser = new User(nameField.getValue(), passwordField.getValue(), emailField.getValue());
+            // 1. ולידציה בסיסית של שדות
+            if (nameField.isEmpty() || emailField.isEmpty() || passwordField.isEmpty() || emailField.isInvalid()) {
+                nameField.setInvalid(nameField.isEmpty());
+                emailField.setInvalid(emailField.isEmpty() || emailField.isInvalid());
+                passwordField.setInvalid(passwordField.isEmpty());
+                return;
+            }
 
-                boolean seccessful = userService.registerNewUser(newUser);
-                if (seccessful) {
-                    Notification.show("User Seccecfully Registered to System !", 5000, Position.MIDDLE, true);
-                    SessionHelper.setAttribute("currentUser", newUser);
+            String email = emailField.getValue();
+            User newUser = new User(nameField.getValue(), passwordField.getValue(), email);
 
-                    RouteHelper.navigateTo(UserDashboardView.class);
-                } else
-                    Notification.show("User Could'nt Register to System ! Please Try Later...", 5000,
-                            Position.TOP_STRETCH, true);
-            } else {
-                if (nameField.isEmpty())
-                    nameField.setInvalid(true);
-                if (emailField.isEmpty() && emailField.isInvalid())
-                    emailField.setInvalid(true);
-                if (passwordField.isEmpty())
-                    passwordField.setInvalid(true);
+            try {
+                // 2. קריאה לשירות - השירות יבצע את הבדיקה בפנים ויזרוק Exception אם צריך
+                userService.registerNewUser(newUser);
+
+                // 3. הצלחה
+                showSuccessNotification("ברוך הבא! נרשמת בהצלחה.");
+                SessionHelper.setAttribute("currentUser", newUser);
+                RouteHelper.navigateTo(UserDashboardView.class);
+
+            } catch (UsernameNotFoundException ex) {
+                // שגיאה לוגית - המשתמש כבר קיים
+                emailField.setErrorMessage("לא ניתן להשלים את הרישום. בדוק את הפרטים או נסה להתחבר.");
+                emailField.setInvalid(true);
+                showErrorNotification("קיימת בעיה עם כתובת האימייל שהוזנה.");
+                // שים לב: ההודעה כאן מעט עמומה מטעמי אבטחה, אבל עדיין מכוונת את המשתמש
+
+            } catch (Exception exe) {
+                // שגיאה טכנית - למשל מסד הנתונים נפל
+                showErrorNotification("שגיאה זמנית במערכת. אנא נסה שוב מאוחר יותר.");
+                exe.printStackTrace(); // לתיעוד בלוגים של השרת
             }
         });
 
@@ -229,4 +257,23 @@ public class AuthView extends HorizontalLayout {
         // צביעת המסגרת בלבן (Vaadin משתמש במשתנה הזה למסגרות של שדות)
         field.getStyle().set("--lumo-contrast-50pct", "white");
     }
+
+    // פעולת עזר להצגת הודעות קופצות ירוקות
+    private void showSuccessNotification(String message) {
+        Notification notification = Notification.show(message, 4000, Notification.Position.TOP_CENTER);
+        notification.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+    }
+
+    // פעולת עזר להצגת הודעות של עדכון למשתמש
+    private void showUpdateNotification(String message) {
+        Notification notification = Notification.show(message, 2000, Notification.Position.TOP_CENTER);
+        notification.addThemeVariants(NotificationVariant.LUMO_CONTRAST);
+    }
+
+    // פעולת עזר להצגת הודעות קופצות אדומות - שגיאה
+    private void showErrorNotification(String message) {
+        Notification notification = Notification.show(message, 4000, Notification.Position.MIDDLE);
+        notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
+    }
+
 }

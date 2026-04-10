@@ -88,15 +88,13 @@ public class UserService
      *         נחזיר שגיאה , יוחזר שקר
      */
     public User loginUser(String email, String password) {
-        User userCheck = userRepository.findOneByEmail(email);
 
-        if (userCheck != null) {
-            // נבצע התחברות
+        boolean isExist = userRepository.existsByEmail(email);
 
-            // 1. בדיקת סיסמא
-            if (userCheck.getPassword().equals(password)) {
-                return userCheck;
-            }
+        if (isExist) {
+            User u = userRepository.findOneByEmail(email);
+            if (password.equals(u.getPassword()))
+                return u;
         }
 
         return null;
@@ -142,6 +140,10 @@ public class UserService
 
     public void resetAllRegularUsers() {
         userRepository.resetAllRegularUsers();
+    }
+
+    public boolean existsByEmail(String email) {
+        return userRepository.existsByEmail(email);
     }
 
 }

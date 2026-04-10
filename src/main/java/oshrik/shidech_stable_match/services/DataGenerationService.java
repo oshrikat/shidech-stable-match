@@ -85,7 +85,7 @@ public class DataGenerationService
         u.setMaritalStatus(pickRandom(MaritalStatus.class));
         
         boolean kids = (u.getMaritalStatus() != MaritalStatus.SINGLE) && rand.nextBoolean();
-        u.setHasChildren(kids);
+        // u.setHasChildren(kids);
         u.setHasPets(rand.nextBoolean());
 
         // --- העדפות ---

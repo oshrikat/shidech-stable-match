@@ -65,7 +65,8 @@ public class User {
         STUDENT, // סטודנט/ית
         EMPLOYEE, // שכיר/ה
         SELF_EMPLOYED, // עצמאי/ת
-        UNEMPLOYED // לא עובד/ת
+        UNEMPLOYED, // לא עובד/ת
+        YESHIVA_STUDENT // בין ישיבה או אברך
     }
 
     /**
@@ -117,6 +118,8 @@ public class User {
 
     private UserStatus status;
 
+    private boolean isEmailVerified = false; // עבור משימת אימות האימייל
+
     // ==========================================
     // פרק 1: היכרות בסיסית וזהות (Identity)
     // ==========================================
@@ -126,10 +129,13 @@ public class User {
     private LocalDate birthDate;
     private Gender gender;
 
-    private Location address; // יחזור לפעולה כשניצור את מחלקת Location
+    private Location address;
+    private String city; // כנראה זמני
+
     private String photoUrl;
     private MaritalStatus maritalStatus;
-    private boolean hasChildren;
+    private String phone; // אפשרות יצירת קשר
+    private int numberOfChildren = 0; // כמה ילדים יש למתשמש
 
     // ==========================================
     // פרק 2: אפיון המשתמש (User Data)
@@ -147,14 +153,14 @@ public class User {
     // פרק 3: העדפות חיפוש (Preferences)
     // ==========================================
 
-    private ArrayList<ReligiousLevel> allowedReligiousLevels;
-    private Range ageRange;
-    private ArrayList<Occupation> allowedOccupations;
+    private List<ReligiousLevel> allowedReligiousLevels;
+    private Range ageRange; // גיל מקסימום ומינימום - טווח גילים שמוכן להכיר
+    private List<Occupation> allowedOccupations;
     private int maxDistanceKm;
     private Range heightRange;
     private boolean requiresDegree;
     private boolean smokingDealBreaker;
-    private ArrayList<Ethnicity> forbiddenEthnicities;
+    private List<Ethnicity> forbiddenEthnicities;
     private boolean rejectsChildren;
     private boolean rejectsPets;
 
@@ -178,7 +184,7 @@ public class User {
      */
 
     @Transient
-    private ArrayList<ScorePair> preferencesScores = new ArrayList<>();
+    private List<ScorePair> preferencesScores = new ArrayList<>();
 
     @Transient
     private User currentPartner;
@@ -367,13 +373,6 @@ public class User {
         this.maritalStatus = maritalStatus;
     }
 
-    public boolean isHasChildren() {
-        return hasChildren;
-    }
-
-    public void setHasChildren(boolean hasChildren) {
-        this.hasChildren = hasChildren;
-    }
 
     public ReligiousLevel getReligiousLevel() {
         return religiousLevel;
@@ -431,19 +430,19 @@ public class User {
         this.hasDegree = hasDegree;
     }
 
-    public ArrayList<ReligiousLevel> getAllowedReligiousLevels() {
+    public List<ReligiousLevel> getAllowedReligiousLevels() {
         return allowedReligiousLevels;
     }
 
-    public void setAllowedReligiousLevels(ArrayList<ReligiousLevel> allowedReligiousLevels) {
+    public void setAllowedReligiousLevels(List<ReligiousLevel> allowedReligiousLevels) {
         this.allowedReligiousLevels = allowedReligiousLevels;
     }
 
-    public ArrayList<Occupation> getAllowedOccupations() {
+    public List<Occupation> getAllowedOccupations() {
         return allowedOccupations;
     }
 
-    public void setAllowedOccupations(ArrayList<Occupation> allowedOccupations) {
+    public void setAllowedOccupations(List<Occupation> allowedOccupations) {
         this.allowedOccupations = allowedOccupations;
     }
 
@@ -471,11 +470,11 @@ public class User {
         this.smokingDealBreaker = smokingDealBreaker;
     }
 
-    public ArrayList<Ethnicity> getForbiddenEthnicities() {
+    public List<Ethnicity> getForbiddenEthnicities() {
         return forbiddenEthnicities;
     }
 
-    public void setForbiddenEthnicities(ArrayList<Ethnicity> forbiddenEthnicities) {
+    public void setForbiddenEthnicities(List<Ethnicity> forbiddenEthnicities) {
         this.forbiddenEthnicities = forbiddenEthnicities;
     }
 
@@ -577,11 +576,11 @@ public class User {
         this.heightRange = heightRange;
     }
 
-    public ArrayList<ScorePair> getPreferencesScores() {
+    public List<ScorePair> getPreferencesScores() {
         return preferencesScores;
     }
 
-    public void setPreferencesScores(ArrayList<ScorePair> preferencesScores) {
+    public void setPreferencesScores(List<ScorePair> preferencesScores) {
         this.preferencesScores = preferencesScores;
     }
 
@@ -623,6 +622,38 @@ public class User {
 
     public void setStatus(UserStatus status_user) {
         this.status = status_user;
+    }
+
+    public boolean isEmailVerified() {
+        return isEmailVerified;
+    }
+
+    public void setEmailVerified(boolean isEmailVerified) {
+        this.isEmailVerified = isEmailVerified;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+
+    public int getNumberOfChildren() {
+        return numberOfChildren;
+    }
+
+    public void setNumberOfChildren(int numberOfChildren) {
+        this.numberOfChildren = numberOfChildren;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
+    }
+
+    public String getCity() {
+        return city;
     }
 
 }
