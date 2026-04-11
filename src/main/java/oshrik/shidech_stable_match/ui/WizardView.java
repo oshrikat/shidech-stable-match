@@ -73,7 +73,6 @@ public class WizardView extends VerticalLayout implements BeforeEnterObserver {
     private Checkbox rejectsChildrenBox;
     private Checkbox rejectsPetsBox;
 
-
     // פרק 4: Personality
     private IntegerField scaleExtraversionField;
     private IntegerField scaleOrderlinessField;
@@ -93,21 +92,22 @@ public class WizardView extends VerticalLayout implements BeforeEnterObserver {
 
         H1 title = new H1("בואו נכיר קצת יותר לעומק!  ");
 
-        add(title, create_Part_1_IdentitySection(), create_Part_2_UserDataSection(), create_Part_3_PreferencesSection(), create_Part_4_PersonalitySection());
+        add(title, create_Part_1_IdentitySection(), create_Part_2_UserDataSection(), create_Part_3_PreferencesSection(),
+                create_Part_4_PersonalitySection());
 
-        //   כפתור סיום ושמירה
+        // כפתור סיום ושמירה
         Button finishBtn = new Button("סיום ושמירה!", e -> {
-            
+
             // 1. בדיקת חובה בסיסית
             if (!checkPart1() || !checkPart2() || !checkPart3() || !checkPart4()) {
-                Notification.show("נא מלאו את כל הפרטים!", 4000, Notification.Position.MIDDLE);
-                return; 
+                Notification.show("נא מלאו את כל הפרטים! - בדיקה כללית", 4000, Notification.Position.MIDDLE);
+                return;
             }
 
             // 2. עדכון אובייקט המשתמש (משיכת הנתונים מה-Session)
             currUser = (User) SessionHelper.getAttribute("currentUser");
-            
-            if(currUser != null) {
+
+            if (currUser != null) {
                 /* פרק 1 */
 
                 // שם פרטי
@@ -115,7 +115,7 @@ public class WizardView extends VerticalLayout implements BeforeEnterObserver {
                 // שם משפחה
                 currUser.setLastName(lastNameField.getValue());
                 // תאריך לידה
-                currUser.setBirthDate((birthDateField.getValue())); 
+                currUser.setBirthDate((birthDateField.getValue()));
                 // מגדר
                 currUser.setGender(genderComboBox.getValue());
                 // ססטוס משפחה
@@ -185,20 +185,22 @@ public class WizardView extends VerticalLayout implements BeforeEnterObserver {
                 currUser.setRejectsPets(rejectsPetsBox.getValue());
 
                 // =============
-                /* פרק 4 */
+                /* פרק 4 - אישיות */
                 // =============
-
-                currUser.setScaleExtraversion(scaleExtraversionField.getValue() != null ? scaleExtraversionField.getValue() : 5);
-                currUser.setScaleOrderliness(scaleOrderlinessField.getValue() != null ? scaleOrderlinessField.getValue() : 5);
-                currUser.setScaleEmotional(scaleEmotionalField.getValue() != null ? scaleEmotionalField.getValue() : 5);
-                currUser.setScaleAgreeableness(scaleAgreeablenessField.getValue() != null ? scaleAgreeablenessField.getValue() : 5);
-                currUser.setScaleOpenness(scaleOpennessField.getValue() != null ? scaleOpennessField.getValue() : 5);
+                currUser.setScaleExtraversion(
+                        scaleExtraversionField.getValue() != null ? scaleExtraversionField.getValue() : 3);
+                currUser.setScaleOrderliness(
+                        scaleOrderlinessField.getValue() != null ? scaleOrderlinessField.getValue() : 3);
+                currUser.setScaleEmotional(scaleEmotionalField.getValue() != null ? scaleEmotionalField.getValue() : 3);
+                currUser.setScaleAgreeableness(
+                        scaleAgreeablenessField.getValue() != null ? scaleAgreeablenessField.getValue() : 3);
+                currUser.setScaleOpenness(scaleOpennessField.getValue() != null ? scaleOpennessField.getValue() : 3);
 
                 // 3. שינוי הסטטוס
                 currUser.setProfileComplete(true);
 
                 // 4. שמירה במסד הנתונים ועדכון הסשן
-                userService.updateFullUser(currUser); 
+                userService.updateFullUser(currUser);
                 SessionHelper.setAttribute("currentUser", currUser);
 
                 // 5. מעבר למסך הבית
@@ -211,8 +213,8 @@ public class WizardView extends VerticalLayout implements BeforeEnterObserver {
         finishBtn.getStyle().set("background-color", "#7F77DD");
         finishBtn.getStyle().set("color", "white");
         finishBtn.getStyle().set("margin-top", "20px");
-        
-        add(finishBtn); 
+
+        add(finishBtn);
     }
 
     private VerticalLayout create_Part_1_IdentitySection() {
@@ -241,6 +243,8 @@ public class WizardView extends VerticalLayout implements BeforeEnterObserver {
         numberOfChildrenField = new IntegerField("כמות ילדים");
         numberOfChildrenField.setValue(0);
         numberOfChildrenField.setMin(0);
+        numberOfChildrenField.setMax(15);
+        numberOfChildrenField.setStepButtonsVisible(true);
         numberOfChildrenField.setVisible(false); // מוסתר בהתחלה
 
         // --- לוגיקה דינמית לילדים ---
@@ -290,7 +294,6 @@ public class WizardView extends VerticalLayout implements BeforeEnterObserver {
         layout.add(sectionTitle, uploadProfileImage, formLayout);
         return layout;
     }
-
 
     private VerticalLayout create_Part_2_UserDataSection() {
 
@@ -381,25 +384,47 @@ public class WizardView extends VerticalLayout implements BeforeEnterObserver {
     }
 
     private VerticalLayout create_Part_4_PersonalitySection() {
+
         VerticalLayout layout = new VerticalLayout();
-        H3 sectionTitle = new H3("4️⃣ אישיות (1 עד 10)");
+
+        layout.setSpacing(true);
+
+        H3 sectionTitle = new H3("4️⃣ אופי ואישיות (דירוג 1-5)");
+
+        Span description = new Span("1 = נמוך מאוד | 5 = גבוה מאוד");
+
+        description.getStyle().set("color", "gray").set("font-size", "0.9em");
 
         scaleExtraversionField = new IntegerField("מוחצנות (Extraversion)");
+
         scaleOrderlinessField = new IntegerField("סדר וארגון (Orderliness)");
+
         scaleEmotionalField = new IntegerField("רגישות (Emotional)");
+
         scaleAgreeablenessField = new IntegerField("נועם הליכות (Agreeableness)");
+
         scaleOpennessField = new IntegerField("פתיחות לחוויות (Openness)");
 
-        IntegerField[] personalityFields = {scaleExtraversionField, scaleOrderlinessField, scaleEmotionalField, scaleAgreeablenessField, scaleOpennessField};
+        IntegerField[] personalityFields = { scaleExtraversionField, scaleOrderlinessField, scaleEmotionalField,
+                scaleAgreeablenessField, scaleOpennessField };
+
+        FormLayout formLayout = new FormLayout();
+
         for (IntegerField field : personalityFields) {
             field.setMin(1);
-            field.setMax(10);
-            field.setStepButtonsVisible(true); // מוסיף כפתורי פלוס ומינוס קטנים
-            layout.add(field);
+            field.setMax(5);
+            field.setStepButtonsVisible(true);
+            formLayout.add(field);
         }
 
-        layout.addComponentAsFirst(sectionTitle);
+        formLayout.setResponsiveSteps(
+                new FormLayout.ResponsiveStep("0", 1),
+                new FormLayout.ResponsiveStep("500px", 2));
+
+        layout.add(sectionTitle, description, formLayout);
+
         return layout;
+
     }
 
     // ==========================================
@@ -416,72 +441,123 @@ public class WizardView extends VerticalLayout implements BeforeEnterObserver {
             birthDateField.setInvalid(true);
             birthDateField.setErrorMessage("תאריך חובה!");
             isValid = false;
+            System.out.println("Birth Not good");
         } else {
             birthDateField.setInvalid(false);
         }
         if (!validateComboBox(genderComboBox))
+        {
             isValid = false;
+            System.out.println("gender Not good");
+        }
         if (!validateComboBox(maritalStatusComboBox))
+        {
             isValid = false;
+            System.out.println("status... Not good");
+        }
         if (!validateTextField(phoneField))
+        {
             isValid = false;
-        if (validateTextField(cityField))
+            System.out.println("no phone Not good");
+        }
+        if (!validateTextField(cityField)) {
             isValid = false;
+            System.out.println("city Not good");
+        }
 
+        // בודקים ילדים רק אם השדה גלוי (כלומר המשתמש לא רווק)
+        if (numberOfChildrenField.isVisible() && !validateIntegerField(numberOfChildrenField)) {
+            isValid = false;
+            System.out.println("Num children Not good");
+
+        }
+
+        System.out.println(isValid ? "===> Part 1 is fine " : "Part 1 false !!!");
         return isValid;
     }
 
     private boolean checkPart2() {
         boolean isValid = true;
         if (!validateComboBox(religiousLevelBox))
+        {
             isValid = false;
+            System.out.println("religious");
+        }
         if (!validateComboBox(occupationBox))
+        {
             isValid = false;
+            System.out.println("עיסוק לא טוב");
+        }
         if (!validateComboBox(ethnicityBox))
+        {
             isValid = false;
+            System.out.println("עדה ");
+        }
         if (!validateIntegerField(heightField))
+        {
             isValid = false;
+            System.out.println("heigth not gooodododsdoodsdos");
+        }
 
         // check box אין צורך לבדוק , לא חייב
         // אם משתמש סימן זה true אחרת false
+
+        System.out.println(isValid ? "Part 2 is fine " : "Part 2 false !!!");
 
         return isValid;
     }
 
     private boolean checkPart3() {
+
         boolean isValid = true;
-        if (allowedReligiousLevelsBox.isEmpty()) {
-            allowedReligiousLevelsBox.setInvalid(true);
-            allowedReligiousLevelsBox.setErrorMessage("חובה לבחור לפחות רמה דתית אחת");
-            isValid = false;
-        }
 
-        if (minAgeField.isEmpty() || maxAgeField.isEmpty()) {
-            Notification.show("נא להזין טווח גילאים תקין");
+        if (!validateMultiSelect(allowedReligiousLevelsBox))
             isValid = false;
-        }
 
-        // מרחק מקסימלי הוא חובה עבור חישוב גיאוגרפי
-        if (maxDistanceField.isEmpty()) {
-            maxDistanceField.setInvalid(true);
+        if (!validateMultiSelect(allowedOccupationsBox))
             isValid = false;
-        }
+
+        if (!validateIntegerField(minAgeField))
+            isValid = false;
+
+        if (!validateIntegerField(maxAgeField))
+            isValid = false;
+
+        if (!validateIntegerField(minHeightField))
+            isValid = false;
+
+        if (!validateIntegerField(maxHeightField))
+            isValid = false;
+
+        if (!validateIntegerField(maxDistanceField))
+            isValid = false;
+
+        System.out.println(isValid ? "Part 3 is fine " : "Part 3 false !!!");
 
         return isValid;
     }
 
     private boolean checkPart4() {
+
         boolean isValid = true;
+
         if (!validateIntegerField(scaleExtraversionField))
             isValid = false;
+
         if (!validateIntegerField(scaleOrderlinessField))
             isValid = false;
+
         if (!validateIntegerField(scaleEmotionalField))
             isValid = false;
+
         if (!validateIntegerField(scaleAgreeablenessField))
             isValid = false;
+
         if (!validateIntegerField(scaleOpennessField))
             isValid = false;
+
+        System.out.println(isValid ? "Part 4 is fine " : "Part 4 false !!!");
+
         return isValid;
     }
 
@@ -513,6 +589,8 @@ public class WizardView extends VerticalLayout implements BeforeEnterObserver {
         if (textField.isEmpty()) {
             textField.setInvalid(true);
             textField.setErrorMessage("שדה חובה!");
+
+            System.out.println("\nThe value : " + textField.getValue());
             return false;
         }
         textField.setInvalid(false);

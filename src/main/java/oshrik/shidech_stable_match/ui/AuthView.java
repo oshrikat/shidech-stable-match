@@ -113,7 +113,7 @@ public class AuthView extends HorizontalLayout {
 
                 if (loginUser != null) {
                     // הצלחה
-                    showSuccessNotification("ברוך הבא, " + loginUser.getFullName() + "!");
+                    showSuccessNotification("ברוך הבא, " + loginUser.getUsername() + "!");
                     SessionHelper.setAttribute("currentUser", loginUser);
 
                     // ניווט לפי תפקיד [cite: 54, 365]
