@@ -24,6 +24,8 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.streams.UploadHandler;
 
 import oshrik.shidech_stable_match.datamodels.User;
+import oshrik.shidech_stable_match.services.AsyncManagerService;
+import oshrik.shidech_stable_match.services.LocationApiService;
 import oshrik.shidech_stable_match.services.UserService;
 import oshrik.shidech_stable_match.utilities.Location;
 import oshrik.shidech_stable_match.utilities.Range;
@@ -55,6 +57,9 @@ public class WizardView extends VerticalLayout implements BeforeEnterObserver {
     private IntegerField heightField;
     private Checkbox hasPetsBox;
     private Checkbox hasDegreeBox;
+    private Checkbox isTechnological;
+    private Checkbox militaryService;
+    private Checkbox strictKashrut;
 
     // פרק 3:
     // Preferences :
@@ -66,6 +71,9 @@ public class WizardView extends VerticalLayout implements BeforeEnterObserver {
     private IntegerField maxHeightField;
     private IntegerField maxDistanceField;
     private MultiSelectComboBox<User.Ethnicity> forbiddenEthnicitiesBox;
+    private Checkbox requiresTechnologicalBox; // האם חייב שהצד השני יהיה בעל טלפון מסונן
+    private Checkbox requiresMilitaryServiceBox; // האם חייב שהצד השני יהיה בעל שירות צבאי או לאומי
+    private Checkbox requiresStrictKashrutBox; // האם הצד השני חייב לשמור כשרות מהדרין ?
 
     // Checkboxes (Deal-Breakers)
     private Checkbox requiresDegreeBox;
@@ -82,11 +90,20 @@ public class WizardView extends VerticalLayout implements BeforeEnterObserver {
 
     private User currUser;
 
+    /* Services */
     private UserService userService; // הזרקת שירות משתמשים
+    private LocationApiService locationApiService; // הזרקת שירות של טיפול במיקום
+    private AsyncManagerService asyncManagerService;
 
     // הזרקת התלות לבנאי
-    public WizardView(UserService userService) {
+    public WizardView(UserService userService, LocationApiService locationApiService,
+            AsyncManagerService asyncManagerService) {
+
+        // הזרקת שירותים
         this.userService = userService;
+        this.locationApiService = locationApiService;
+        this.asyncManagerService = asyncManagerService;
+
         setAlignItems(Alignment.CENTER);
         getStyle().set("direction", "rtl");
 
@@ -123,16 +140,8 @@ public class WizardView extends VerticalLayout implements BeforeEnterObserver {
                 // טלפון ליצירת קשר
                 currUser.setPhone(phoneField.getValue());
                 // עיר מגורים
-                currUser.setCity(cityField.getValue());
-
-                // כרגע נשמור אותו כטקסט - בהמשך נחשב מיקום בעזרת API
-                // Address
-
-                currUser.setAddress(new Location()); // חיבור ל-API של Nominatim
-                /*
-                 * מה אפשר לעשות בינתיים ? - אפשר לשלוף את המיקום שלו של המחשב ? ממנו הוא מתחבר
-                 * בינתיים ? תמיד מבקשים ממני באתרים לאשר מיקום
-                 */
+                String city = cityField.getValue();
+                currUser.setCity(city);
 
                 currUser.setNumberOfChildren(
                         numberOfChildrenField.getValue() != null ? numberOfChildrenField.getValue() : 0);
@@ -160,6 +169,12 @@ public class WizardView extends VerticalLayout implements BeforeEnterObserver {
                 currUser.setHasPets(hasPetsBox.getValue());
                 // האם יש תואר
                 currUser.setHasDegree(hasDegreeBox.getValue());
+                // רמת סינון אינטרנט
+                currUser.setTechnological(isTechnological.getValue());
+                // האם עשה שירות צבאי או שירות לאומי ?
+                currUser.setMilitaryService(militaryService.getValue());
+                // מקפיד על כשרות מהדרין ?
+                currUser.setStrictKashrut(strictKashrut.getValue());
 
                 // =============
                 /* פרק 3 */
@@ -167,6 +182,10 @@ public class WizardView extends VerticalLayout implements BeforeEnterObserver {
                 currUser.setAllowedReligiousLevels(new ArrayList<>(allowedReligiousLevelsBox.getValue()));
                 currUser.setAllowedOccupations(new ArrayList<>(allowedOccupationsBox.getValue()));
                 currUser.setForbiddenEthnicities(new ArrayList<>(forbiddenEthnicitiesBox.getValue()));
+
+                currUser.setRequiresTechnological(requiresTechnologicalBox.getValue());
+                currUser.setRequiresMilitaryService(requiresMilitaryServiceBox.getValue());
+                currUser.setRequiresStrictKashrut(requiresStrictKashrutBox.getValue());
 
                 // בניית אובייקטי Range
                 if (minAgeField.getValue() != null && maxAgeField.getValue() != null) {
@@ -201,11 +220,15 @@ public class WizardView extends VerticalLayout implements BeforeEnterObserver {
 
                 // 4. שמירה במסד הנתונים ועדכון הסשן
                 userService.updateFullUser(currUser);
+                // חישוב נתונים גאוגרפיים לפי עיר של המשתמש
+                asyncManagerService.fetchAndSaveLocationBackground(currUser, city);
+                // שמירת משתמש - הכנסתו למשתמש
                 SessionHelper.setAttribute("currentUser", currUser);
 
                 // 5. מעבר למסך הבית
-                Notification.show("הפרופיל עודכן בהצלחה! ברוך הבא 🥳", 3000, Notification.Position.MIDDLE);
+                Notification.show("הפרופיל עודכן בהצלחה! ברוך הבא 🥳", 2000, Notification.Position.MIDDLE);
                 RouteHelper.navigateTo(UserDashboardView.class);
+
 
             }
         });
@@ -310,6 +333,9 @@ public class WizardView extends VerticalLayout implements BeforeEnterObserver {
         isSmokerBox = new Checkbox("אני מעשן/ת");
         hasPetsBox = new Checkbox("יש לי בעלי חיים");
         hasDegreeBox = new Checkbox("אני בעל/ת תואר אקדמי");
+        isTechnological = new Checkbox("יש לי טלפון מסונן");
+        militaryService = new Checkbox("עשיתי / עושה שירות צבאי / לאומי ");
+        strictKashrut = new Checkbox("אני מקפיד על כשרות מהדרין");
 
         // --- הגדרת נתונים (Populate) ---
         religiousLevelBox.setItems(User.ReligiousLevel.values());
@@ -326,7 +352,7 @@ public class WizardView extends VerticalLayout implements BeforeEnterObserver {
         // --- סידור ב-FormLayout ---
         FormLayout formLayout = new FormLayout();
         formLayout.add(religiousLevelBox, occupationBox, ethnicityBox, heightField,
-                isSmokerBox, hasPetsBox, hasDegreeBox);
+                isSmokerBox, hasPetsBox, hasDegreeBox, isTechnological, militaryService, strictKashrut);
 
         // הגדרת עמודות
         formLayout.setResponsiveSteps(
@@ -352,6 +378,10 @@ public class WizardView extends VerticalLayout implements BeforeEnterObserver {
         forbiddenEthnicitiesBox = new MultiSelectComboBox<>("עדות שלא באות בחשבון (Blacklist)");
         forbiddenEthnicitiesBox.setItems(User.Ethnicity.values());
 
+        requiresTechnologicalBox = new Checkbox("חייב שיהיה : טלפון מסונן בלבד");
+        requiresMilitaryServiceBox = new Checkbox("חייב שיהיה : שירות צבאי / לאומי");
+        requiresStrictKashrutBox = new Checkbox("חייב שיהיה : כשרות מהדרין בלבד");
+
         // טווחי גיל וגובה (פיצול ל-2 שדות לשיפור ה-UX)
         minAgeField = new IntegerField("גיל מינימום");
         maxAgeField = new IntegerField("גיל מקסימום");
@@ -372,14 +402,20 @@ public class WizardView extends VerticalLayout implements BeforeEnterObserver {
                 minHeightField, maxHeightField,
                 maxDistanceField, forbiddenEthnicitiesBox);
 
-        // הוספת הצ'קבוקסים בשורה נפרדת או מתחת
-        VerticalLayout checkboxes = new VerticalLayout(
-                new Span("קוים אדומים (Deal-Breakers):"),
-                requiresDegreeBox, smokingDealBreakerBox, rejectsChildrenBox, rejectsPetsBox);
-        checkboxes.setSpacing(false);
-        checkboxes.setPadding(false);
+        VerticalLayout dealBreakersLayout = new VerticalLayout(
+                new Span("קוים אדומים ודרישות חובה:"),
+                requiresDegreeBox,
+                smokingDealBreakerBox,
+                rejectsChildrenBox,
+                rejectsPetsBox,
+                requiresTechnologicalBox, // חדש
+                requiresMilitaryServiceBox, // חדש
+                requiresStrictKashrutBox // חדש
+        );
+        dealBreakersLayout.setSpacing(false);
+        dealBreakersLayout.setPadding(false);
 
-        layout.add(sectionTitle, formLayout, checkboxes);
+        layout.add(sectionTitle, formLayout, dealBreakersLayout);
         return layout;
     }
 
@@ -517,17 +553,35 @@ public class WizardView extends VerticalLayout implements BeforeEnterObserver {
         if (!validateMultiSelect(allowedOccupationsBox))
             isValid = false;
 
-        if (!validateIntegerField(minAgeField))
-            isValid = false;
+        // בדיקת שדות הגיל (חובה)
+        boolean minAgeValid = validateIntegerField(minAgeField);
+        boolean maxAgeValid = validateIntegerField(maxAgeField);
 
-        if (!validateIntegerField(maxAgeField))
+        if (!minAgeValid || !maxAgeValid) {
             isValid = false;
+        } else {
+            // בדיקה לוגית - רק אם שני השדות לא ריקים
+            if (minAgeField.getValue() > maxAgeField.getValue()) {
+                maxAgeField.setInvalid(true);
+                maxAgeField.setErrorMessage("מקסימום חייב להיות גדול ממינימום");
+                isValid = false;
+            }
+        }
 
-        if (!validateIntegerField(minHeightField))
-            isValid = false;
+        // בדיקת שדות הגובה (חובה)
+        boolean minHeightValid = validateIntegerField(minHeightField);
+        boolean maxHeightValid = validateIntegerField(maxHeightField);
 
-        if (!validateIntegerField(maxHeightField))
+        if (!minHeightValid || !maxHeightValid) {
             isValid = false;
+        } else {
+            // בדיקה לוגית - טווח גובה תקין
+            if (minHeightField.getValue() > maxHeightField.getValue()) {
+                maxHeightField.setInvalid(true);
+                maxHeightField.setErrorMessage("מקסימום חייב להיות גדול ממינימום");
+                isValid = false;
+            }
+        }
 
         if (!validateIntegerField(maxDistanceField))
             isValid = false;

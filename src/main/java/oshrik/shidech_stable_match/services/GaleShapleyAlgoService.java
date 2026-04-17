@@ -33,7 +33,7 @@ public class GaleShapleyAlgoService {
             ScorePair nextProposal = currMan.getNextProposalCandidate();
 
             // בדיקה: האם נגמרו לו הנשים להציע להן?
-            if (nextProposal == null) {
+            if (nextProposal == null || nextProposal.getScore() == 0) {
                 // הגבר הזה סיים את כל האפשרויות שלו ונשאר רווק.
                 // לא מחזירים אותו לתור (freeMens) וממשיכים לגבר הבא.
                 continue; 

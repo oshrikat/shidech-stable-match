@@ -5,6 +5,12 @@ import org.springframework.stereotype.Service;
 import oshrik.shidech_stable_match.datamodels.MatchScore;
 import oshrik.shidech_stable_match.repositories.MatchScoreRepository;
 
+/**
+ * @author Oshri Kataribas
+ * @date 2026-04-12
+ *       מחלקה שאחראית על קשר עם מסד הנתונים - ציוני התאמה
+ */
+
 @Service
 public class MatchScoreService {
     

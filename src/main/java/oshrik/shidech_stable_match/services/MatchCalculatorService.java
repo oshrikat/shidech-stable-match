@@ -39,13 +39,15 @@ public class MatchCalculatorService
 
     // --- מימוש הפונקציה לחישוב כל פרק 3 ---
     private double calcPreferencesScore(User me, User her) {
-        // הציון הסופי של החישוב ציון התאמה ביניהם
-        double score = 0;
+
 
         // כאן נבדוק Deal Breakers שלא נותנים ניקוד אלא פוסלים ישר... (ילדים, חיות)
         if (isDealBreaker(me, her)) {
             return 0; // פסילה מיידית של כל הניקוד בפרק הזה (או אפילו בכלל)
         }
+
+        // הציון הסופי של החישוב ציון התאמה ביניהם
+        double score = 0;
 
         // שים לב: אנחנו כופלים את הציון (0-100) במשקל היחסי שלו
         score += calcReligionScore(me, her) * WEIGHT_RELIGION;
@@ -125,12 +127,12 @@ public class MatchCalculatorService
         return Math.max(0, 100 - (diff * 1.5));
     }
 
+    // חישוב המרחק האמיתי בק"מ
     private double calcDistanceScore(User me, User candidate) {
-        //  חישוב המרחק האמיתי בק"מ
-        // הגנה: אם אין לאחד מהם מיקום מוגדר, נניח שהמרחק מושלם או נחזיר 0. 
-        // כרגע נחזיר 100 כדי לא לפגוע בציון סתם בבדיקות.
-        /* יחזור לפעולה כשנשמיש את המיקום
-        if (me.getAddress() == null || candidate.getAddress() == null) return 100;
+        // הגנה: אם אין לאחד מהם מיקום מוגדר, נניח שהמרחק סביר - ממוצע או נחזיר 0.
+
+        if (me.getAddress() == null || candidate.getAddress() == null)
+            return 70;
 
         double accuallDistance = me.getAddress().distanceTo(candidate.getAddress());
         int maxAllowed = me.getMaxDistanceKm();
@@ -141,8 +143,7 @@ public class MatchCalculatorService
 
         double diff = accuallDistance - maxAllowed;
         return Math.max(0, 100 - (diff * 0.5));
-        */
-        return 100; // זמני עד שנפעיל מיקומים
+
     }
 
     private double calcEducationScore(User me, User candidate) {
@@ -170,19 +171,46 @@ public class MatchCalculatorService
     
     // פונקציה מיוחדת לבדיקת פסילות (ילדים, חיות)
     private boolean isDealBreaker(User me, User candidate) {
-        if ((me.isRejectsChildren() && candidate.getNumberOfChildren() > 0) ||
-            (me.isRejectsPets() && candidate.isHasPets()))
+
+        // 1. ילדים
+        if (me.isRejectsChildren() && candidate.getNumberOfChildren() > 0)
+            return true;
+        // 2. חיות
+        if (me.isRejectsPets() && candidate.isHasPets())
+            return true;
+        // 3. עישון - אם זה קו אדום והצד השני מעשן
+        if (me.isSmokingDealBreaker() && candidate.isSmoker())
+            return true;
+        // 4. תואר (אם הגדרתי כחובה ואין לצד השני)
+        if (me.isRequiresDegree() && !candidate.isHasDegree())
             return true;
 
-        return false; //  אין פסילה
+        // דרישות נוספות (טכנולוגיה, צבא, כשרות)
+
+        // אם אני דורש טלפון מסונן והצד השני הצהיר שאין לו (isTechnological = false)
+        if (me.isRequiresTechnological() && !candidate.isTechnological())
+            return true;
+
+        // אם אני דורש שירות צבאי/לאומי והצד השני לא עשה
+        if (me.isRequiresMilitaryService() && !candidate.isMilitaryService())
+            return true;
+
+        // אם אני דורש כשרות מהדרין והצד השני לא מקפיד
+        if (me.isRequiresStrictKashrut() && !candidate.isStrictKashrut())
+            return true;
+
+        return false; // אין פסילה - ניתן להמשיך לחישוב ציון WSM
     }
 
     /* פרק 4 - סקאלות של אופי */
 
-    public double calcSingleScaleScore(int scaleChoice1 , int scaleChoice2) {
-        // נניח וקיבלנו 2,4 - זה הבדל של שלוש
-        int diff = Math.abs(scaleChoice1 - scaleChoice2);
-        return Math.max(0, 100 - (diff * 10));
+    public double calcSingleScaleScore(int val1, int val2) {
+
+        int diff = Math.abs(val1 - val2);
+
+        // בסקאלה של 1-5, כל הפרש של נקודה שווה 25% ירידה בציון
+
+        return Math.max(0, 100 - (diff * 25));
     }
 
     public double calcPersonalityScore(User me , User her) {

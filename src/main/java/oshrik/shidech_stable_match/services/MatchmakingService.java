@@ -32,49 +32,52 @@ public class MatchmakingService {
     }
 
     public void prepareAndFillPreferences() {
+
+        // 1. שליפת המועמדים
         this.currentMen = userRepository.findByGenderAndRoleAndStatus(Gender.MALE, ROLE.USER, UserStatus.AVAILABLE);
         this.currentWomen = userRepository.findByGenderAndRoleAndStatus(Gender.FEMALE, ROLE.USER, UserStatus.AVAILABLE);
 
-        // שלב 1: מנקים את מסד הנתונים מהציונים הישנים לפני שמתחילים חישוב חדש
         matchScoreService.cleanScoreMatchTable();
-
-        // רשימה זמנית שתאגור את כל הציונים כדי לשמור אותם יחד בסוף
         List<MatchScore> scoresToSaveToDb = new ArrayList<>();
 
+        // 2. איפוס רשימות זמניות פעם אחת
+        currentMen.forEach(m -> m.setPreferencesScores(new ArrayList<>()));
+        currentWomen.forEach(w -> w.setPreferencesScores(new ArrayList<>()));
+
+        // 3. חישוב המטריצה
         for (User man : currentMen) {
-            man.setPreferencesScores(new ArrayList<>());
             for (User woman : currentWomen) {
-                if (woman.getPreferencesScores() == null) {
-                    woman.setPreferencesScores(new ArrayList<>());
+
+                double scoreForMan = matchCalculator.calculateTotalScore(man, woman);
+                double scoreForWoman = matchCalculator.calculateTotalScore(woman, man);
+
+                double finalUnifiedScore = 0;
+
+                if (scoreForMan > 0 && scoreForWoman > 0) {
+                    // רק אם שניהם לא פסלו - מחשבים ממוצע אחיד
+                    finalUnifiedScore = (scoreForMan + scoreForWoman) / 2.0;
                 }
 
-                // חישוב ציון ההתאמה בין הגבר לאישה על בסיס נתוני הפרופיל שלהם
-                double score = matchCalculator.calculateTotalScore(man, woman);
+                // שניהם מקבלים את אותו הציון בדיוק
+                man.getPreferencesScores().add(new ScorePair(woman, finalUnifiedScore));
+                woman.getPreferencesScores().add(new ScorePair(man, finalUnifiedScore));
 
-                // --- שמירה בזיכרון (בשביל המהירות של אלגוריתם גייל-שפלי) ---
-                man.getPreferencesScores().add(new ScorePair(woman, score)); // שומר אצל הגבר את האישה שאיתה קיבל ציון
-                                                                             // ואת הציון
-                woman.getPreferencesScores().add(new ScorePair(man, score));
-
-                // --- הכנה לשמירה במסד הנתונים (בשביל היסטוריה, תצוגה במסך וכו') ---
-                scoresToSaveToDb.add(new MatchScore(man.getId(), woman.getId(), score));
-
+                // שמירה ל-DB לצורך אינדיקציה
+                scoresToSaveToDb.add(new MatchScore(man.getId(), woman.getId(), finalUnifiedScore));
             }
 
-            // מיון רשימת המועמדות של הגבר הנוכחי מהציון הגבוה לנמוך
+            // מיון רשימת הגבר (מהגבוה לנמוך)
             Collections.sort(man.getPreferencesScores());
-
         }
 
-        // נעבור על כל הנשים ונמיין לכל אחת את הרשימת העדפות שכרגע קיימת אצלה
+        // 4. מיון רשימות הנשים (קריטי לאלגוריתם!)
         for (User woman : currentWomen) {
             Collections.sort(woman.getPreferencesScores());
         }
 
-        // שלב 2: שומרים את כל המטריצה למסד הנתונים בפעולה אחת יעילה
+        // 5. שמירה מרוכזת ל-DB
         matchScoreService.saveAllScores(scoresToSaveToDb);
-        System.out
-                .println("Successfully calculated and saved " + scoresToSaveToDb.size() + " match scores to MongoDB.");
+        System.out.println("Successfully calculated scores for " + scoresToSaveToDb.size() + " pairs.");
     }
 
     /**

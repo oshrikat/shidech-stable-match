@@ -45,15 +45,20 @@ public class User {
     }
 
     /**
-     * Enum המייצג את הרמה הדתית.
+     * Enum המייצג את הרמה הדתית המפורטת.
      * משמש לחישוב התאמה בשיטת Whitelist (בדיקה האם קיים ברשימה המותרת).
+     * הסקאלה הורחבה כדי למנוע חיכוך במפגשים וליצור דיוק מגזרי.
      */
     public enum ReligiousLevel {
         SECULAR, // חילוני
         TRADITIONAL, // מסורתי
-        RELIGIOUS, // דתי
-        HAREDI, // חרדי
-        DOS // דוס (אופציונלי, לפי האפיון שלך)
+        DATI_LITE, // דתי לייט / פתוח
+        DATI_LEUMI_CLASSIC, // דתי לאומי קלאסי
+        DATI_LEUMI_TORANI, // דתי לאומי תורני (חרד"ל)
+        HAREDI_MODERN, // חרדי מודרני
+        HAREDI_LITVAK, // חרדי ליטאי
+        HAREDI_CHASIDIC, // חרדי חסידי
+        BAAL_TESHUVA // חוזר/ת בתשובה
     }
 
     /**
@@ -148,6 +153,9 @@ public class User {
     private int height;
     private boolean hasPets;
     private boolean hasDegree;
+    private boolean isTechnological; // האם מחזיק סמארטפון/אינטרנט לא מסונן
+    private boolean militaryService; // שירת בצבא/שירות לאומי
+    private boolean strictKashrut; // הקפדה על בד"ץ/מהדרין בלבד
 
     // ==========================================
     // פרק 3: העדפות חיפוש (Preferences)
@@ -163,6 +171,17 @@ public class User {
     private List<Ethnicity> forbiddenEthnicities;
     private boolean rejectsChildren;
     private boolean rejectsPets;
+
+    /**
+     * האם המשתמש מחייב שלבן/בת הזוג יהיה טלפון מסונן/כשר
+     */
+    private boolean requiresTechnological;
+
+    /** האם המשתמש מחייב שבן/בת הזוג עשו שירות צבאי או לאומי */
+    private boolean requiresMilitaryService;
+
+    /** האם המשתמש מחייב הקפדה על כשרות מהדרין בלבד */
+    private boolean requiresStrictKashrut;
 
     // ==========================================
     // פרק 4: אישיות (Personality - Big 5)
@@ -654,6 +673,54 @@ public class User {
 
     public String getCity() {
         return city;
+    }
+
+    public boolean isTechnological() {
+        return isTechnological;
+    }
+
+    public void setTechnological(boolean isTechnological) {
+        this.isTechnological = isTechnological;
+    }
+
+    public boolean isMilitaryService() {
+        return militaryService;
+    }
+
+    public void setMilitaryService(boolean militaryService) {
+        this.militaryService = militaryService;
+    }
+
+    public boolean isStrictKashrut() {
+        return strictKashrut;
+    }
+
+    public void setStrictKashrut(boolean strictKashrut) {
+        this.strictKashrut = strictKashrut;
+    }
+
+    public boolean isRequiresTechnological() {
+        return requiresTechnological;
+    }
+
+    public void setRequiresTechnological(boolean requiresTechnological) {
+        this.requiresTechnological = requiresTechnological;
+    }
+
+    public boolean isRequiresMilitaryService() {
+        return requiresMilitaryService;
+    }
+
+    public void setRequiresMilitaryService(boolean requiresMilitaryService) {
+        this.requiresMilitaryService = requiresMilitaryService;
+    }
+
+    public boolean isRequiresStrictKashrut() {
+        return requiresStrictKashrut;
+    }
+
+    public void setRequiresStrictKashrut(boolean requiresStrictKashrut) {
+        this.requiresStrictKashrut = requiresStrictKashrut;
     }
 
 }

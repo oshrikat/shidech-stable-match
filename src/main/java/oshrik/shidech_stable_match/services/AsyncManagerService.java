@@ -2,11 +2,22 @@ package oshrik.shidech_stable_match.services;
 
 import org.springframework.stereotype.Service;
 
+import oshrik.shidech_stable_match.datamodels.User;
+import oshrik.shidech_stable_match.utilities.Location;
+
 @Service
 public class AsyncManagerService {
 
     public static final TaskCallback TaskCallback = null;
     private Thread t;
+
+    private static LocationApiService locationApiService;
+    private static UserService userService;
+
+    public AsyncManagerService(LocationApiService locationApiService, UserService userService) {
+        this.locationApiService = locationApiService;
+        this.userService = userService;
+    }
 
     // ממשק שמטפל בתהליכי רקע - אסינכרונים
     public interface TaskCallback 
@@ -74,5 +85,19 @@ public class AsyncManagerService {
             t.interrupt();
         }
     }
-    
+
+    public void fetchAndSaveLocationBackground(User user, String city) {
+        new Thread(() -> {
+            try {
+                Location loc = locationApiService.getRealLocationFromCityName(city);
+                if (loc != null) {
+                    user.setAddress(loc);
+                    userService.updateFullUser(user);
+                    System.out.println("Async Task: Successfully updated location for user!");
+                }
+            } catch (Exception e) {
+                System.err.println("Async Task Failed: " + e.getMessage());
+            }
+        }).start(); // זינוק לדרך
+    }
 }
